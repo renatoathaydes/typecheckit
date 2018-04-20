@@ -1,18 +1,13 @@
 package com.typecheck.linear;
 
-import com.sun.source.util.TreePath;
-import com.sun.tools.javac.util.Log;
+import com.sun.source.util.TreeScanner;
 
-import javax.lang.model.element.TypeElement;
+public abstract class TypeChecker extends TreeScanner<Void, TypeCheckerUtils> {
 
-public interface TypeChecker {
-
-    default void typeProcessingStart() {
+    public void start() {
     }
 
-    default void typeProcessingOver() {
+    public void stop() {
     }
-
-    void typeCheck(TypeElement element, TreePath treePath, Log log);
 
 }
