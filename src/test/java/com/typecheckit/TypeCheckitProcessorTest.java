@@ -1,4 +1,4 @@
-package com.typecheck.linear;
+package com.typecheckit;
 
 import com.athaydes.osgiaas.javac.internal.DefaultClassLoaderContext;
 import com.athaydes.osgiaas.javac.internal.compiler.OsgiaasJavaCompiler;
@@ -13,14 +13,14 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 
-public class TypeCheckerProcessorTest {
+public class TypeCheckitProcessorTest {
 
     private OsgiaasJavaCompiler compiler =
             new OsgiaasJavaCompiler(
                     DefaultClassLoaderContext.INSTANCE,
                     asList(
                             "-processor",
-                            "com.typecheck.linear.TypeCheckerProcessor",
+                            "com.typecheckit.TypeCheckitProcessor",
                             "-AprintErrorStack"));
 
     @Test
@@ -29,7 +29,7 @@ public class TypeCheckerProcessorTest {
         Optional<Class<Object>> runner =
                 compiler.compile(
                         "Runner",
-                        "import com.typecheck.linear.annotation.Linear;\n"
+                        "import com.typecheckit.annotation.Linear;\n"
                                 + "public class Runner implements Runnable {\n"
                                 + "  public void run() {\n"
                                 + "    @Linear String s = \"hello @Linear\";\n"
@@ -50,7 +50,7 @@ public class TypeCheckerProcessorTest {
         Optional<Class<Object>> runner =
                 compiler.compile(
                         "Runner",
-                        "import com.typecheck.linear.annotation.Linear;\n"
+                        "import com.typecheckit.annotation.Linear;\n"
                                 + "public class Runner implements Runnable {\n"
                                 + "  public void run() {\n"
                                 + "    @Linear Object s = new Object();\n"
@@ -72,7 +72,7 @@ public class TypeCheckerProcessorTest {
         Optional<Class<Object>> compiledClass =
                 compiler.compile(
                         "Runner",
-                        "import com.typecheck.linear.annotation.Linear;\n"
+                        "import com.typecheckit.annotation.Linear;\n"
                                 + "public class Runner implements Runnable {\n"
                                 + "  public void run() {\n"
                                 + "    @Linear String s = \"hello @Linear\";\n"

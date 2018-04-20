@@ -1,4 +1,4 @@
-package com.typecheck.linear;
+package com.typecheckit;
 
 import com.sun.source.util.Trees;
 import com.sun.tools.javac.util.Log;

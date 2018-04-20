@@ -1,4 +1,4 @@
-package com.typecheck.linear;
+package com.typecheckit;
 
 import com.sun.source.util.TaskEvent;
 import com.sun.source.util.TreePath;
@@ -7,15 +7,15 @@ import com.sun.tools.javac.processing.JavacProcessingEnvironment;
 import com.sun.tools.javac.util.Log;
 import java.util.List;
 
-public class LinearTaskListener implements com.sun.source.util.TaskListener {
+public class TypeCheckitTaskListener implements com.sun.source.util.TaskListener {
 
     private final JavacProcessingEnvironment processingEnvironment;
     private boolean hasInvokedTypeProcessingStart;
     private boolean hasInvokedTypeProcessingOver;
     private final List<TypeChecker> typeCheckers;
 
-    public LinearTaskListener( JavacProcessingEnvironment processingEnvironment,
-                               List<TypeChecker> typeCheckers ) {
+    public TypeCheckitTaskListener( JavacProcessingEnvironment processingEnvironment,
+                                    List<TypeChecker> typeCheckers ) {
         this.processingEnvironment = processingEnvironment;
         this.typeCheckers = typeCheckers;
     }

@@ -1,4 +1,4 @@
-package com.typecheck.linear;
+package com.typecheckit;
 
 import com.sun.source.util.TreeScanner;
 

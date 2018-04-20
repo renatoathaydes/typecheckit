@@ -1,4 +1,4 @@
-package com.typecheck.linear.annotation;
+package com.typecheckit.annotation;
 
 import java.lang.annotation.*;
 
