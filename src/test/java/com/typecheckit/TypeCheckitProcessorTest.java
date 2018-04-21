@@ -2,14 +2,15 @@ package com.typecheckit;
 
 import com.athaydes.osgiaas.javac.internal.DefaultClassLoaderContext;
 import com.athaydes.osgiaas.javac.internal.compiler.OsgiaasJavaCompiler;
-import org.junit.Test;
-
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
+import org.junit.Test;
 
 import static java.util.Arrays.asList;
-import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.hasItem;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 
@@ -21,7 +22,7 @@ public class TypeCheckitProcessorTest {
                     asList(
                             "-processor",
                             "com.typecheckit.TypeCheckitProcessor",
-                            "-AprintErrorStack"));
+                            "-AprintErrorStack" ) );
 
     @Test
     public void canAssignLiteralToLinearVariable()
@@ -36,10 +37,10 @@ public class TypeCheckitProcessorTest {
                                 + "    System.out.println(s);\n"
                                 + "  }\n"
                                 + "}\n",
-                        System.out);
+                        System.out );
 
-        runner.orElseThrow(() -> new RuntimeException("Error compiling"))
-                .asSubclass(Runnable.class)
+        runner.orElseThrow( () -> new RuntimeException( "Error compiling" ) )
+                .asSubclass( Runnable.class )
                 .newInstance()
                 .run();
     }
@@ -57,10 +58,10 @@ public class TypeCheckitProcessorTest {
                                 + "    System.out.println(s.toString());\n"
                                 + "  }\n"
                                 + "}\n",
-                        System.out);
+                        System.out );
 
-        runner.orElseThrow(() -> new RuntimeException("Error compiling"))
-                .asSubclass(Runnable.class)
+        runner.orElseThrow( () -> new RuntimeException( "Error compiling" ) )
+                .asSubclass( Runnable.class )
                 .newInstance()
                 .run();
     }
@@ -81,9 +82,15 @@ public class TypeCheckitProcessorTest {
                                 + "    System.out.println(t);\n"
                                 + "  }\n"
                                 + "}\n",
-                        new PrintStream(writer, true));
+                        new PrintStream( writer, true ) );
 
-        assertFalse("Should not compile successfully", compiledClass.isPresent());
-        assertThat(writer.toString(), containsString("Runner.java:7: error: [use.unsafe]"));
+        assertFalse( "Should not compile successfully", compiledClass.isPresent() );
+
+        String compilerOutput = writer.toString();
+        System.out.println( "-----\n" + compilerOutput + "\n------" );
+        List<String> outputLines = Arrays.asList( compilerOutput.split( "\n" ) );
+
+        assertThat( outputLines,
+                hasItem( "error: Runner.java:6 Re-using @Linear variable s" ) );
     }
 }

@@ -67,5 +67,4 @@ public class TypeCheckitProcessor extends AbstractProcessor {
         return false;
     }
 
-
 }

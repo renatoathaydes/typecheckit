@@ -6,6 +6,7 @@ import com.sun.source.util.Trees;
 import com.sun.tools.javac.processing.JavacProcessingEnvironment;
 import com.sun.tools.javac.util.Log;
 import java.util.List;
+import javax.annotation.processing.Messager;
 
 public class TypeCheckitTaskListener implements com.sun.source.util.TaskListener {
 
@@ -37,10 +38,11 @@ public class TypeCheckitTaskListener implements com.sun.source.util.TaskListener
             hasInvokedTypeProcessingStart = true;
         }
 
+        Messager messager = processingEnvironment.getMessager();
         Log log = Log.instance( processingEnvironment.getContext() );
         Trees trees = Trees.instance( processingEnvironment );
         TreePath treePath = trees.getPath( e.getTypeElement() );
-        TypeCheckerUtils utils = new TypeCheckerUtils( log, trees );
+        TypeCheckerUtils utils = new TypeCheckerUtils( log, messager, trees, e.getCompilationUnit() );
 
         for ( TypeChecker typeChecker : typeCheckers ) {
             typeChecker.scan( treePath, utils );
