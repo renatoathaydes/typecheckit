@@ -2,14 +2,16 @@ package com.typecheckit;
 
 import com.athaydes.osgiaas.javac.internal.DefaultClassLoaderContext;
 import com.athaydes.osgiaas.javac.internal.compiler.OsgiaasJavaCompiler;
+import org.junit.Test;
+
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-import org.junit.Test;
 
 import static java.util.Arrays.asList;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
@@ -39,10 +41,9 @@ public class TypeCheckitProcessorTest {
                                 + "}\n",
                         System.out );
 
-        runner.orElseThrow( () -> new RuntimeException( "Error compiling" ) )
+        assertThat( runner.orElseThrow( () -> new RuntimeException( "Error compiling" ) )
                 .asSubclass( Runnable.class )
-                .newInstance()
-                .run();
+                .getName(), equalTo( "Runner" ) );
     }
 
     @Test
@@ -50,9 +51,9 @@ public class TypeCheckitProcessorTest {
             throws IllegalAccessException, InstantiationException {
         Optional<Class<Object>> runner =
                 compiler.compile(
-                        "Runner",
+                        "Runner2",
                         "import com.typecheckit.annotation.Linear;\n"
-                                + "public class Runner implements Runnable {\n"
+                                + "public class Runner2 implements Runnable {\n"
                                 + "  public void run() {\n"
                                 + "    @Linear Object s = new Object();\n"
                                 + "    System.out.println(s.toString());\n"
@@ -60,10 +61,9 @@ public class TypeCheckitProcessorTest {
                                 + "}\n",
                         System.out );
 
-        runner.orElseThrow( () -> new RuntimeException( "Error compiling" ) )
+        assertThat( runner.orElseThrow( () -> new RuntimeException( "Error compiling" ) )
                 .asSubclass( Runnable.class )
-                .newInstance()
-                .run();
+                .getName(), equalTo( "Runner2" ) );
     }
 
     @Test
