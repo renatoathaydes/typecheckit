@@ -12,7 +12,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Stack;
 
-import static com.typecheckit.BlockKind.*;
+import static com.typecheckit.BlockKind.ELSE;
+import static com.typecheckit.BlockKind.IF_THEN;
+import static com.typecheckit.BlockKind.IF_THEN_ELSE;
 import static javax.tools.Diagnostic.Kind.ERROR;
 
 public final class LinearTypeChecker extends TypeChecker {
