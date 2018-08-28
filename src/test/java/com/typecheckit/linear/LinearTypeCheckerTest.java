@@ -1,4 +1,4 @@
-package com.typecheckit;
+package com.typecheckit.linear;
 
 import com.athaydes.osgiaas.javac.internal.DefaultClassLoaderContext;
 import com.athaydes.osgiaas.javac.internal.compiler.OsgiaasJavaCompiler;
@@ -16,15 +16,13 @@ import static org.hamcrest.CoreMatchers.hasItem;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 
-public class TypeCheckitProcessorTest {
+public class LinearTypeCheckerTest {
 
     private OsgiaasJavaCompiler compiler =
             new OsgiaasJavaCompiler(
                     DefaultClassLoaderContext.INSTANCE,
-                    asList(
-                            "-processor",
-                            "com.typecheckit.TypeCheckitProcessor",
-                            "-AprintErrorStack" ) );
+                    asList( "-processor",
+                            "com.typecheckit.TypeCheckitProcessor" ) );
 
     @Test
     public void canAssignLiteralToLinearVariable() {
