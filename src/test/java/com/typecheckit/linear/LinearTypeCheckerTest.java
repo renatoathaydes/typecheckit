@@ -203,4 +203,33 @@ public class LinearTypeCheckerTest {
                 .getName(), equalTo( "Runner" ) );
     }
 
+
+    @Test
+    public void cannotUseLinearVariableInsideForLoop() {
+        ByteArrayOutputStream writer = new ByteArrayOutputStream();
+
+        Optional<Class<Object>> compiledClass =
+                compiler.compile(
+                        "Runner",
+                        "import com.typecheckit.annotation.Linear;\n"
+                                + "public class Runner implements Runnable {\n"
+                                + "  public void run() {\n"
+                                + "    @Linear String hello = \"hello @Linear\";\n"
+                                + "    for (int i = 0; i < 1; i++) {\n"
+                                + "      hello.toLowerCase(); // should fail here\n"
+                                + "    }\n"
+                                + "  }\n"
+                                + "}\n",
+                        new PrintStream( writer, true ) );
+
+        assertFalse( "Should not compile successfully", compiledClass.isPresent() );
+
+        String compilerOutput = writer.toString();
+        System.out.println( "-----\n" + compilerOutput + "\n------" );
+        List<String> outputLines = Arrays.asList( compilerOutput.split( "\n" ) );
+
+        assertThat( outputLines,
+                hasItem( "error: Runner.java:6 Re-using @Linear variable hello" ) );
+    }
+
 }

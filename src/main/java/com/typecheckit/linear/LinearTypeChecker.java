@@ -158,7 +158,7 @@ public final class LinearTypeChecker extends TypeChecker {
     @Override
     public Void visitForLoop( ForLoopTree node, TypeCheckerUtils typeCheckerUtils ) {
         System.out.println( "visitForLoop " + node );
-        blockStack.push( BlockKind.OTHER );
+        blockStack.push( BlockKind.FOR_LOOP );
         super.visitForLoop( node, typeCheckerUtils );
         blockStack.pop();
         return null;
@@ -167,7 +167,7 @@ public final class LinearTypeChecker extends TypeChecker {
     @Override
     public Void visitEnhancedForLoop( EnhancedForLoopTree node, TypeCheckerUtils typeCheckerUtils ) {
         System.out.println( "visitEnhancedForLoop " + node );
-        blockStack.push( BlockKind.OTHER );
+        blockStack.push( BlockKind.FOR_LOOP );
         super.visitEnhancedForLoop( node, typeCheckerUtils );
         blockStack.pop();
         return null;
@@ -357,7 +357,12 @@ public final class LinearTypeChecker extends TypeChecker {
 
         String nodeName = node.getName().toString();
         LinearMark mark = allowedUsagesByVarName.get( nodeName );
+
         if ( mark != null ) {
+            if ( blockStack.peek() == BlockKind.FOR_LOOP ) {
+                // @Linear variable cannot be safely used in loops
+                mark.isUsedUp = true;
+            }
             if ( mark.isUsedUp ) {
                 CompilationUnitTree cu = typeCheckerUtils.getCompilationUnit();
                 long lineNumber = cu.getLineMap().getLineNumber(
