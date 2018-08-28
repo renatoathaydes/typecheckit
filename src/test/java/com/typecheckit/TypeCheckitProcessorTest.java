@@ -27,8 +27,7 @@ public class TypeCheckitProcessorTest {
                             "-AprintErrorStack" ) );
 
     @Test
-    public void canAssignLiteralToLinearVariable()
-            throws IllegalAccessException, InstantiationException {
+    public void canAssignLiteralToLinearVariable() {
         Optional<Class<Object>> runner =
                 compiler.compile(
                         "Runner",
@@ -47,12 +46,12 @@ public class TypeCheckitProcessorTest {
     }
 
     @Test
-    public void canAssignNewObjectToLinearVariable()
-            throws IllegalAccessException, InstantiationException {
+    public void canAssignNewObjectToLinearVariable() {
         Optional<Class<Object>> runner =
                 compiler.compile(
-                        "Runner2",
-                        "import com.typecheckit.annotation.Linear;\n"
+                        "pkg.Runner2",
+                        "package pkg;\n" +
+                                "import com.typecheckit.annotation.Linear;\n"
                                 + "public class Runner2 implements Runnable {\n"
                                 + "  public void run() {\n"
                                 + "    @Linear Object s = new Object();\n"
@@ -63,7 +62,7 @@ public class TypeCheckitProcessorTest {
 
         assertThat( runner.orElseThrow( () -> new RuntimeException( "Error compiling" ) )
                 .asSubclass( Runnable.class )
-                .getName(), equalTo( "Runner2" ) );
+                .getName(), equalTo( "pkg.Runner2" ) );
     }
 
     @Test
@@ -93,4 +92,117 @@ public class TypeCheckitProcessorTest {
         assertThat( outputLines,
                 hasItem( "error: Runner.java:6 Re-using @Linear variable s" ) );
     }
+
+    @Test
+    public void cannotUseLinearVariableAfterUsedUpInIfStatementCondition() {
+        ByteArrayOutputStream writer = new ByteArrayOutputStream();
+
+        Optional<Class<Object>> compiledClass =
+                compiler.compile(
+                        "Runner",
+                        "import com.typecheckit.annotation.Linear;\n"
+                                + "public class Runner implements Runnable {\n"
+                                + "  public void run() {\n"
+                                + "    @Linear String hi = \"hello @Linear\";\n"
+                                + "    if (hi.length() > 2) {\n"
+                                + "      System.out.println(true);\n"
+                                + "    }\n"
+                                + "    System.out.println(hi.toLowerCase()); // should fail here\n"
+                                + "  }\n"
+                                + "}\n",
+                        new PrintStream( writer, true ) );
+
+        assertFalse( "Should not compile successfully", compiledClass.isPresent() );
+
+        String compilerOutput = writer.toString();
+        System.out.println( "-----\n" + compilerOutput + "\n------" );
+        List<String> outputLines = Arrays.asList( compilerOutput.split( "\n" ) );
+
+        assertThat( outputLines,
+                hasItem( "error: Runner.java:8 Re-using @Linear variable hi" ) );
+    }
+
+    @Test
+    public void cannotUseLinearVariableAfterUsedUpInIfStatementBlock() {
+        ByteArrayOutputStream writer = new ByteArrayOutputStream();
+
+        Optional<Class<Object>> compiledClass =
+                compiler.compile(
+                        "Runner",
+                        "import com.typecheckit.annotation.Linear;\n"
+                                + "public class Runner implements Runnable {\n"
+                                + "  public void run() {\n"
+                                + "    @Linear String hi = \"hello @Linear\";\n"
+                                + "    if (System.currentTimeMillis() > 20000000L) {\n"
+                                + "      System.out.println(hi);\n"
+                                + "    }\n"
+                                + "    System.out.println(hi.toLowerCase()); // should fail here\n"
+                                + "  }\n"
+                                + "}\n",
+                        new PrintStream( writer, true ) );
+
+        assertFalse( "Should not compile successfully", compiledClass.isPresent() );
+
+        String compilerOutput = writer.toString();
+        System.out.println( "-----\n" + compilerOutput + "\n------" );
+        List<String> outputLines = Arrays.asList( compilerOutput.split( "\n" ) );
+
+        assertThat( outputLines,
+                hasItem( "error: Runner.java:8 Re-using @Linear variable hi" ) );
+    }
+
+    @Test
+    public void cannotUseLinearVariableAfterUsedUpFromInsideIfStatementBlock() {
+        ByteArrayOutputStream writer = new ByteArrayOutputStream();
+
+        Optional<Class<Object>> compiledClass =
+                compiler.compile(
+                        "Runner",
+                        "import com.typecheckit.annotation.Linear;\n"
+                                + "public class Runner implements Runnable {\n"
+                                + "  public void run() {\n"
+                                + "    @Linear String hello = \"hello @Linear\";\n"
+                                + "    System.out.println(hello); // used up\n"
+                                + "    if (System.currentTimeMillis() > 20000000L) {\n"
+                                + "      hello = hello.toLowerCase(); // should fail here\n"
+                                + "    }\n"
+                                + "  }\n"
+                                + "}\n",
+                        new PrintStream( writer, true ) );
+
+        assertFalse( "Should not compile successfully", compiledClass.isPresent() );
+
+        String compilerOutput = writer.toString();
+        System.out.println( "-----\n" + compilerOutput + "\n------" );
+        List<String> outputLines = Arrays.asList( compilerOutput.split( "\n" ) );
+
+        assertThat( outputLines,
+                hasItem( "error: Runner.java:7 Re-using @Linear variable hello" ) );
+    }
+
+    @Test
+    public void canUseLinearVariableWithinDisjointIfBranches() {
+        ByteArrayOutputStream writer = new ByteArrayOutputStream();
+
+        Optional<Class<Object>> compiledClass =
+                compiler.compile(
+                        "Runner",
+                        "import com.typecheckit.annotation.Linear;\n"
+                                + "public class Runner implements Runnable {\n"
+                                + "  public void run() {\n"
+                                + "    @Linear String hello = \"hello @Linear\";\n"
+                                + "    if (System.currentTimeMillis() > 20000000L) {\n"
+                                + "      hello.toLowerCase();\n"
+                                + "    } else {\n"
+                                + "      hello.toUpperCase();\n"
+                                + "    }\n"
+                                + "  }\n"
+                                + "}\n",
+                        new PrintStream( writer, true ) );
+
+        assertThat( compiledClass.orElseThrow( () -> new RuntimeException( "Error compiling" ) )
+                .asSubclass( Runnable.class )
+                .getName(), equalTo( "Runner" ) );
+    }
+
 }
