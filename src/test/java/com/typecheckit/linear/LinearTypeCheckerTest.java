@@ -2,6 +2,7 @@ package com.typecheckit.linear;
 
 import com.athaydes.osgiaas.javac.internal.DefaultClassLoaderContext;
 import com.athaydes.osgiaas.javac.internal.compiler.OsgiaasJavaCompiler;
+import com.typecheckit.TestUtils;
 import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;
@@ -26,17 +27,9 @@ public class LinearTypeCheckerTest {
 
     @Test
     public void canAssignLiteralToLinearVariable() {
-        Optional<Class<Object>> runner =
-                compiler.compile(
-                        "Runner",
-                        "import com.typecheckit.annotation.Linear;\n"
-                                + "public class Runner implements Runnable {\n"
-                                + "  public void run() {\n"
-                                + "    @Linear String s = \"hello @Linear\";\n"
-                                + "    System.out.println(s);\n"
-                                + "  }\n"
-                                + "}\n",
-                        System.out );
+        Optional<Class<Object>> runner = TestUtils.compileRunnableClassSnippet(
+                "@Linear String s = \"hello @Linear\";\n" +
+                        "System.out.println(s);" );
 
         assertThat( runner.orElseThrow( () -> new RuntimeException( "Error compiling" ) )
                 .asSubclass( Runnable.class )
