@@ -12,7 +12,13 @@ repositories {
     jcenter()
 }
 
+final javaHome = System.getProperty( 'java.home' )
+if ( !javaHome ) {
+    throw new GradleException( "Cannot get 'java.home' property value" )
+}
+
 dependencies {
+    compile files( "${javaHome}/../lib/tools.jar" )
     testCompile group: 'junit', name: 'junit', version: '4.12'
     testCompile "com.athaydes.osgiaas:osgiaas-javac:0.8"
 }
