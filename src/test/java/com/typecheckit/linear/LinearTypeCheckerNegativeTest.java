@@ -5,13 +5,9 @@ import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Optional;
 
-import static org.hamcrest.CoreMatchers.hasItem;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
 
 public class LinearTypeCheckerNegativeTest extends TestUtils {
 
@@ -28,13 +24,7 @@ public class LinearTypeCheckerNegativeTest extends TestUtils {
                         new PrintStream( writer, true ) );
 
         assertFalse( "Should not compile successfully", compiledClass.isPresent() );
-
-        String compilerOutput = writer.toString();
-        System.out.println( "-----\n" + compilerOutput + "\n------" );
-        List<String> outputLines = Arrays.asList( compilerOutput.split( "\n" ) );
-
-        assertThat( outputLines,
-                hasItem( "error: Runner.java:4 Re-using @Linear variable s" ) );
+        assertCompilationErrorContains( writer, "error: Runner.java:4 Re-using @Linear variable s" );
     }
 
     @Test
@@ -51,13 +41,7 @@ public class LinearTypeCheckerNegativeTest extends TestUtils {
                         new PrintStream( writer, true ) );
 
         assertFalse( "Should not compile successfully", compiledClass.isPresent() );
-
-        String compilerOutput = writer.toString();
-        System.out.println( "-----\n" + compilerOutput + "\n------" );
-        List<String> outputLines = Arrays.asList( compilerOutput.split( "\n" ) );
-
-        assertThat( outputLines,
-                hasItem( "error: Runner.java:6 Re-using @Linear variable hi" ) );
+        assertCompilationErrorContains( writer, "error: Runner.java:6 Re-using @Linear variable hi" );
     }
 
     @Test
@@ -74,13 +58,7 @@ public class LinearTypeCheckerNegativeTest extends TestUtils {
                         new PrintStream( writer, true ) );
 
         assertFalse( "Should not compile successfully", compiledClass.isPresent() );
-
-        String compilerOutput = writer.toString();
-        System.out.println( "-----\n" + compilerOutput + "\n------" );
-        List<String> outputLines = Arrays.asList( compilerOutput.split( "\n" ) );
-
-        assertThat( outputLines,
-                hasItem( "error: Runner.java:6 Re-using @Linear variable hi" ) );
+        assertCompilationErrorContains( writer, "error: Runner.java:6 Re-using @Linear variable hi" );
     }
 
     @Test
@@ -97,13 +75,7 @@ public class LinearTypeCheckerNegativeTest extends TestUtils {
                         new PrintStream( writer, true ) );
 
         assertFalse( "Should not compile successfully", compiledClass.isPresent() );
-
-        String compilerOutput = writer.toString();
-        System.out.println( "-----\n" + compilerOutput + "\n------" );
-        List<String> outputLines = Arrays.asList( compilerOutput.split( "\n" ) );
-
-        assertThat( outputLines,
-                hasItem( "error: Runner.java:5 Re-using @Linear variable hello" ) );
+        assertCompilationErrorContains( writer, "error: Runner.java:5 Re-using @Linear variable hello" );
     }
 
     @Test
@@ -119,13 +91,7 @@ public class LinearTypeCheckerNegativeTest extends TestUtils {
                         new PrintStream( writer, true ) );
 
         assertFalse( "Should not compile successfully", compiledClass.isPresent() );
-
-        String compilerOutput = writer.toString();
-        System.out.println( "-----\n" + compilerOutput + "\n------" );
-        List<String> outputLines = Arrays.asList( compilerOutput.split( "\n" ) );
-
-        assertThat( outputLines,
-                hasItem( "error: Runner.java:4 Re-using @Linear variable hello" ) );
+        assertCompilationErrorContains( writer, "error: Runner.java:4 Re-using @Linear variable hello" );
     }
 
     @Test
@@ -141,13 +107,7 @@ public class LinearTypeCheckerNegativeTest extends TestUtils {
                         new PrintStream( writer, true ) );
 
         assertFalse( "Should not compile successfully", compiledClass.isPresent() );
-
-        String compilerOutput = writer.toString();
-        System.out.println( "-----\n" + compilerOutput + "\n------" );
-        List<String> outputLines = Arrays.asList( compilerOutput.split( "\n" ) );
-
-        assertThat( outputLines,
-                hasItem( "error: Runner.java:4 Re-using @Linear variable hello" ) );
+        assertCompilationErrorContains( writer, "error: Runner.java:4 Re-using @Linear variable hello" );
     }
 
     @Test
@@ -164,13 +124,7 @@ public class LinearTypeCheckerNegativeTest extends TestUtils {
                         new PrintStream( writer, true ) );
 
         assertFalse( "Should not compile successfully", compiledClass.isPresent() );
-
-        String compilerOutput = writer.toString();
-        System.out.println( "-----\n" + compilerOutput + "\n------" );
-        List<String> outputLines = Arrays.asList( compilerOutput.split( "\n" ) );
-
-        assertThat( outputLines,
-                hasItem( "error: Runner.java:5 Re-using @Linear variable hello" ) );
+        assertCompilationErrorContains( writer, "error: Runner.java:5 Re-using @Linear variable hello" );
     }
 
     @Test
@@ -187,13 +141,7 @@ public class LinearTypeCheckerNegativeTest extends TestUtils {
                         new PrintStream( writer, true ) );
 
         assertFalse( "Should not compile successfully", compiledClass.isPresent() );
-
-        String compilerOutput = writer.toString();
-        System.out.println( "-----\n" + compilerOutput + "\n------" );
-        List<String> outputLines = Arrays.asList( compilerOutput.split( "\n" ) );
-
-        assertThat( outputLines,
-                hasItem( "error: Runner.java:5 Re-using @Linear variable hello" ) );
+        assertCompilationErrorContains( writer, "error: Runner.java:5 Re-using @Linear variable hello" );
     }
 
 }

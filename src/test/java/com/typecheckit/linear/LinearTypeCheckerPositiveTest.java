@@ -7,20 +7,15 @@ import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.util.Optional;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertThat;
-
 public class LinearTypeCheckerPositiveTest extends TestUtils {
 
     @Test
     public void canAssignLiteralToLinearVariable() {
-        Optional<Class<Object>> runner = compileRunnableClassSnippet(
+        Optional<Class<Object>> compiledClass = compileRunnableClassSnippet(
                 "@Linear String s = \"hello @Linear\";\n" +
                         "System.out.println(s);" );
 
-        assertThat( runner.orElseThrow( () -> new RuntimeException( "Error compiling" ) )
-                .asSubclass( Runnable.class )
-                .getName(), equalTo( "Runner" ) );
+        assertSuccessfulCompilationOfClass( compiledClass );
     }
 
     @Test
@@ -30,9 +25,7 @@ public class LinearTypeCheckerPositiveTest extends TestUtils {
                         + "System.out.println(s.toString());",
                 "pkg", "Runner2", System.out );
 
-        assertThat( runner.orElseThrow( () -> new RuntimeException( "Error compiling" ) )
-                .asSubclass( Runnable.class )
-                .getName(), equalTo( "pkg.Runner2" ) );
+        assertSuccessfulCompilationOfClass( runner, "pkg.Runner2", Runnable.class );
     }
 
     @Test
@@ -49,9 +42,7 @@ public class LinearTypeCheckerPositiveTest extends TestUtils {
                                 + "}",
                         new PrintStream( writer, true ) );
 
-        assertThat( compiledClass.orElseThrow( () -> new RuntimeException( "Error compiling" ) )
-                .asSubclass( Runnable.class )
-                .getName(), equalTo( "Runner" ) );
+        assertSuccessfulCompilationOfClass( compiledClass );
     }
 
 }

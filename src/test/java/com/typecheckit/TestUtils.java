@@ -3,10 +3,16 @@ package com.typecheckit;
 import com.athaydes.osgiaas.javac.internal.DefaultClassLoaderContext;
 import com.athaydes.osgiaas.javac.internal.compiler.OsgiaasJavaCompiler;
 
+import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
 import static java.util.Arrays.asList;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.hasItem;
+import static org.junit.Assert.assertThat;
 
 public class TestUtils {
 
@@ -40,6 +46,28 @@ public class TestUtils {
                 codeSnippet );
 
         return compiler.compile( qualifiedClassName, code, writer );
+    }
+
+    public void assertCompilationErrorContains( ByteArrayOutputStream writer, String error ) {
+        String compilerOutput = writer.toString();
+        System.out.println( "-----\n" + compilerOutput + "\n------" );
+        List<String> outputLines = Arrays.asList( compilerOutput.split( "\n" ) );
+
+        assertThat( outputLines, hasItem( error ) );
+    }
+
+    public void assertSuccessfulCompilationOfClass(
+            @SuppressWarnings( "OptionalUsedAsFieldOrParameterType" ) Optional<Class<Object>> compiledClass ) {
+        assertSuccessfulCompilationOfClass( compiledClass, "Runner", Runnable.class );
+    }
+
+    public void assertSuccessfulCompilationOfClass(
+            @SuppressWarnings( "OptionalUsedAsFieldOrParameterType" ) Optional<Class<Object>> compiledClass,
+            String expectedClassName,
+            Class<?> expectedSuperType ) {
+        assertThat( compiledClass.orElseThrow( () -> new RuntimeException( "Error compiling" ) )
+                .asSubclass( Runnable.class )
+                .getName(), equalTo( expectedClassName ) );
     }
 
 }
