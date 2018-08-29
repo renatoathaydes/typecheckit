@@ -9,35 +9,11 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
-import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 
-public class LinearTypeCheckerTest extends TestUtils {
-
-    @Test
-    public void canAssignLiteralToLinearVariable() {
-        Optional<Class<Object>> runner = compileRunnableClassSnippet(
-                "@Linear String s = \"hello @Linear\";\n" +
-                        "System.out.println(s);" );
-
-        assertThat( runner.orElseThrow( () -> new RuntimeException( "Error compiling" ) )
-                .asSubclass( Runnable.class )
-                .getName(), equalTo( "Runner" ) );
-    }
-
-    @Test
-    public void canAssignNewObjectToLinearVariable() {
-        Optional<Class<Object>> runner = compileRunnableClassSnippet(
-                "@Linear Object s = new Object();\n"
-                        + "System.out.println(s.toString());",
-                "pkg", "Runner2", System.out );
-
-        assertThat( runner.orElseThrow( () -> new RuntimeException( "Error compiling" ) )
-                .asSubclass( Runnable.class )
-                .getName(), equalTo( "pkg.Runner2" ) );
-    }
+public class LinearTypeCheckerNegativeTest extends TestUtils {
 
     @Test
     public void cannotUseLinearVariableAfterUsedUp() {
@@ -129,26 +105,6 @@ public class LinearTypeCheckerTest extends TestUtils {
         assertThat( outputLines,
                 hasItem( "error: Runner.java:5 Re-using @Linear variable hello" ) );
     }
-
-    @Test
-    public void canUseLinearVariableWithinDisjointIfBranches() {
-        ByteArrayOutputStream writer = new ByteArrayOutputStream();
-
-        Optional<Class<Object>> compiledClass =
-                compileRunnableClassSnippet(
-                        "@Linear String hello = \"hello @Linear\";\n"
-                                + "if (System.currentTimeMillis() > 20000000L) {\n"
-                                + "    hello.toLowerCase();\n"
-                                + "} else {\n"
-                                + "    hello.toUpperCase();\n"
-                                + "}",
-                        new PrintStream( writer, true ) );
-
-        assertThat( compiledClass.orElseThrow( () -> new RuntimeException( "Error compiling" ) )
-                .asSubclass( Runnable.class )
-                .getName(), equalTo( "Runner" ) );
-    }
-
 
     @Test
     public void cannotUseLinearVariableInsideForLoop() {
