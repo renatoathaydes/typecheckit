@@ -3,23 +3,31 @@ package com.typecheckit;
 import com.athaydes.osgiaas.javac.internal.DefaultClassLoaderContext;
 import com.athaydes.osgiaas.javac.internal.compiler.OsgiaasJavaCompiler;
 
+import java.io.PrintStream;
 import java.util.Optional;
 
 import static java.util.Arrays.asList;
 
 public class TestUtils {
 
-    private static OsgiaasJavaCompiler compiler =
+    private final OsgiaasJavaCompiler compiler =
             new OsgiaasJavaCompiler(
                     DefaultClassLoaderContext.INSTANCE,
                     asList( "-processor",
                             "com.typecheckit.TypeCheckitProcessor" ) );
 
-    public static Optional<Class<Object>> compileRunnableClassSnippet( String codeSnippet ) {
-        return compileRunnableClassSnippet( codeSnippet, "", "Runner" );
+    public Optional<Class<Object>> compileRunnableClassSnippet( String codeSnippet ) {
+        return compileRunnableClassSnippet( codeSnippet, "", "Runner", System.out );
     }
 
-    public static Optional<Class<Object>> compileRunnableClassSnippet( String codeSnippet, String pkg, String className ) {
+    public Optional<Class<Object>> compileRunnableClassSnippet( String codeSnippet, PrintStream writer ) {
+        return compileRunnableClassSnippet( codeSnippet, "", "Runner", writer );
+    }
+
+    public Optional<Class<Object>> compileRunnableClassSnippet( String codeSnippet,
+                                                                String pkg,
+                                                                String className,
+                                                                PrintStream writer ) {
         String qualifiedClassName = pkg.isEmpty() ? className : pkg + "." + className;
         String code = String.format( "%s import com.typecheckit.annotation.Linear;"
                         + "public class %s implements Runnable {"
@@ -31,7 +39,7 @@ public class TestUtils {
                 className,
                 codeSnippet );
 
-        return compiler.compile( qualifiedClassName, code, System.out );
+        return compiler.compile( qualifiedClassName, code, writer );
     }
 
 }

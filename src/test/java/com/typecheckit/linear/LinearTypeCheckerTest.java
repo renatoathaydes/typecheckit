@@ -1,7 +1,5 @@
 package com.typecheckit.linear;
 
-import com.athaydes.osgiaas.javac.internal.DefaultClassLoaderContext;
-import com.athaydes.osgiaas.javac.internal.compiler.OsgiaasJavaCompiler;
 import com.typecheckit.TestUtils;
 import org.junit.Test;
 
@@ -11,23 +9,16 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
-import static java.util.Arrays.asList;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 
-public class LinearTypeCheckerTest {
-
-    private OsgiaasJavaCompiler compiler =
-            new OsgiaasJavaCompiler(
-                    DefaultClassLoaderContext.INSTANCE,
-                    asList( "-processor",
-                            "com.typecheckit.TypeCheckitProcessor" ) );
+public class LinearTypeCheckerTest extends TestUtils {
 
     @Test
     public void canAssignLiteralToLinearVariable() {
-        Optional<Class<Object>> runner = TestUtils.compileRunnableClassSnippet(
+        Optional<Class<Object>> runner = compileRunnableClassSnippet(
                 "@Linear String s = \"hello @Linear\";\n" +
                         "System.out.println(s);" );
 
@@ -38,18 +29,10 @@ public class LinearTypeCheckerTest {
 
     @Test
     public void canAssignNewObjectToLinearVariable() {
-        Optional<Class<Object>> runner =
-                compiler.compile(
-                        "pkg.Runner2",
-                        "package pkg;\n" +
-                                "import com.typecheckit.annotation.Linear;\n"
-                                + "public class Runner2 implements Runnable {\n"
-                                + "  public void run() {\n"
-                                + "    @Linear Object s = new Object();\n"
-                                + "    System.out.println(s.toString());\n"
-                                + "  }\n"
-                                + "}\n",
-                        System.out );
+        Optional<Class<Object>> runner = compileRunnableClassSnippet(
+                "@Linear Object s = new Object();\n"
+                        + "System.out.println(s.toString());",
+                "pkg", "Runner2", System.out );
 
         assertThat( runner.orElseThrow( () -> new RuntimeException( "Error compiling" ) )
                 .asSubclass( Runnable.class )
@@ -61,17 +44,11 @@ public class LinearTypeCheckerTest {
         ByteArrayOutputStream writer = new ByteArrayOutputStream();
 
         Optional<Class<Object>> compiledClass =
-                compiler.compile(
-                        "Runner",
-                        "import com.typecheckit.annotation.Linear;\n"
-                                + "public class Runner implements Runnable {\n"
-                                + "  public void run() {\n"
-                                + "    @Linear String s = \"hello @Linear\";\n"
-                                + "    String t = s.toUpperCase(); // used up\n"
-                                + "    System.out.println(s.toLowerCase()); // should fail here\n"
-                                + "    System.out.println(t);\n"
-                                + "  }\n"
-                                + "}\n",
+                compileRunnableClassSnippet(
+                        "@Linear String s = \"hello @Linear\";\n"
+                                + "String t = s.toUpperCase(); // used up\n"
+                                + "System.out.println(s.toLowerCase()); // should fail here\n"
+                                + "System.out.println(t);",
                         new PrintStream( writer, true ) );
 
         assertFalse( "Should not compile successfully", compiledClass.isPresent() );
@@ -81,7 +58,7 @@ public class LinearTypeCheckerTest {
         List<String> outputLines = Arrays.asList( compilerOutput.split( "\n" ) );
 
         assertThat( outputLines,
-                hasItem( "error: Runner.java:6 Re-using @Linear variable s" ) );
+                hasItem( "error: Runner.java:4 Re-using @Linear variable s" ) );
     }
 
     @Test
@@ -89,18 +66,12 @@ public class LinearTypeCheckerTest {
         ByteArrayOutputStream writer = new ByteArrayOutputStream();
 
         Optional<Class<Object>> compiledClass =
-                compiler.compile(
-                        "Runner",
-                        "import com.typecheckit.annotation.Linear;\n"
-                                + "public class Runner implements Runnable {\n"
-                                + "  public void run() {\n"
-                                + "    @Linear String hi = \"hello @Linear\";\n"
-                                + "    if (hi.length() > 2) {\n"
-                                + "      System.out.println(true);\n"
-                                + "    }\n"
-                                + "    System.out.println(hi.toLowerCase()); // should fail here\n"
-                                + "  }\n"
-                                + "}\n",
+                compileRunnableClassSnippet(
+                        "@Linear String hi = \"hello @Linear\";\n"
+                                + "if (hi.length() > 2) {\n"
+                                + "  System.out.println(true);\n"
+                                + "}\n"
+                                + "System.out.println(hi.toLowerCase()); // should fail here",
                         new PrintStream( writer, true ) );
 
         assertFalse( "Should not compile successfully", compiledClass.isPresent() );
@@ -110,7 +81,7 @@ public class LinearTypeCheckerTest {
         List<String> outputLines = Arrays.asList( compilerOutput.split( "\n" ) );
 
         assertThat( outputLines,
-                hasItem( "error: Runner.java:8 Re-using @Linear variable hi" ) );
+                hasItem( "error: Runner.java:6 Re-using @Linear variable hi" ) );
     }
 
     @Test
@@ -118,18 +89,12 @@ public class LinearTypeCheckerTest {
         ByteArrayOutputStream writer = new ByteArrayOutputStream();
 
         Optional<Class<Object>> compiledClass =
-                compiler.compile(
-                        "Runner",
-                        "import com.typecheckit.annotation.Linear;\n"
-                                + "public class Runner implements Runnable {\n"
-                                + "  public void run() {\n"
-                                + "    @Linear String hi = \"hello @Linear\";\n"
-                                + "    if (System.currentTimeMillis() > 20000000L) {\n"
-                                + "      System.out.println(hi);\n"
-                                + "    }\n"
-                                + "    System.out.println(hi.toLowerCase()); // should fail here\n"
-                                + "  }\n"
-                                + "}\n",
+                compileRunnableClassSnippet(
+                        "@Linear String hi = \"hello @Linear\";\n"
+                                + "if (System.currentTimeMillis() > 20000000L) {\n"
+                                + "    System.out.println(hi);\n"
+                                + "}\n"
+                                + "System.out.println(hi.toLowerCase()); // should fail here",
                         new PrintStream( writer, true ) );
 
         assertFalse( "Should not compile successfully", compiledClass.isPresent() );
@@ -139,7 +104,7 @@ public class LinearTypeCheckerTest {
         List<String> outputLines = Arrays.asList( compilerOutput.split( "\n" ) );
 
         assertThat( outputLines,
-                hasItem( "error: Runner.java:8 Re-using @Linear variable hi" ) );
+                hasItem( "error: Runner.java:6 Re-using @Linear variable hi" ) );
     }
 
     @Test
@@ -147,18 +112,12 @@ public class LinearTypeCheckerTest {
         ByteArrayOutputStream writer = new ByteArrayOutputStream();
 
         Optional<Class<Object>> compiledClass =
-                compiler.compile(
-                        "Runner",
-                        "import com.typecheckit.annotation.Linear;\n"
-                                + "public class Runner implements Runnable {\n"
-                                + "  public void run() {\n"
-                                + "    @Linear String hello = \"hello @Linear\";\n"
-                                + "    System.out.println(hello); // used up\n"
-                                + "    if (System.currentTimeMillis() > 20000000L) {\n"
-                                + "      hello = hello.toLowerCase(); // should fail here\n"
-                                + "    }\n"
-                                + "  }\n"
-                                + "}\n",
+                compileRunnableClassSnippet(
+                        "@Linear String hello = \"hello @Linear\";\n"
+                                + "System.out.println(hello); // used up\n"
+                                + "if (System.currentTimeMillis() > 20000000L) {\n"
+                                + "    hello = hello.toLowerCase(); // should fail here\n"
+                                + "}",
                         new PrintStream( writer, true ) );
 
         assertFalse( "Should not compile successfully", compiledClass.isPresent() );
@@ -168,7 +127,7 @@ public class LinearTypeCheckerTest {
         List<String> outputLines = Arrays.asList( compilerOutput.split( "\n" ) );
 
         assertThat( outputLines,
-                hasItem( "error: Runner.java:7 Re-using @Linear variable hello" ) );
+                hasItem( "error: Runner.java:5 Re-using @Linear variable hello" ) );
     }
 
     @Test
@@ -176,19 +135,13 @@ public class LinearTypeCheckerTest {
         ByteArrayOutputStream writer = new ByteArrayOutputStream();
 
         Optional<Class<Object>> compiledClass =
-                compiler.compile(
-                        "Runner",
-                        "import com.typecheckit.annotation.Linear;\n"
-                                + "public class Runner implements Runnable {\n"
-                                + "  public void run() {\n"
-                                + "    @Linear String hello = \"hello @Linear\";\n"
-                                + "    if (System.currentTimeMillis() > 20000000L) {\n"
-                                + "      hello.toLowerCase();\n"
-                                + "    } else {\n"
-                                + "      hello.toUpperCase();\n"
-                                + "    }\n"
-                                + "  }\n"
-                                + "}\n",
+                compileRunnableClassSnippet(
+                        "@Linear String hello = \"hello @Linear\";\n"
+                                + "if (System.currentTimeMillis() > 20000000L) {\n"
+                                + "    hello.toLowerCase();\n"
+                                + "} else {\n"
+                                + "    hello.toUpperCase();\n"
+                                + "}",
                         new PrintStream( writer, true ) );
 
         assertThat( compiledClass.orElseThrow( () -> new RuntimeException( "Error compiling" ) )
@@ -202,17 +155,11 @@ public class LinearTypeCheckerTest {
         ByteArrayOutputStream writer = new ByteArrayOutputStream();
 
         Optional<Class<Object>> compiledClass =
-                compiler.compile(
-                        "Runner",
-                        "import com.typecheckit.annotation.Linear;\n"
-                                + "public class Runner implements Runnable {\n"
-                                + "  public void run() {\n"
-                                + "    @Linear String hello = \"hello @Linear\";\n"
-                                + "    for (int i = 0; i < 1; i++) {\n"
-                                + "      hello.toLowerCase(); // should fail here\n"
-                                + "    }\n"
-                                + "  }\n"
-                                + "}\n",
+                compileRunnableClassSnippet(
+                        "@Linear String hello = \"hello @Linear\";\n"
+                                + "for (int i = 0; i < 1; i++) {\n"
+                                + "    hello.toLowerCase(); // should fail here\n"
+                                + "}",
                         new PrintStream( writer, true ) );
 
         assertFalse( "Should not compile successfully", compiledClass.isPresent() );
@@ -222,7 +169,7 @@ public class LinearTypeCheckerTest {
         List<String> outputLines = Arrays.asList( compilerOutput.split( "\n" ) );
 
         assertThat( outputLines,
-                hasItem( "error: Runner.java:6 Re-using @Linear variable hello" ) );
+                hasItem( "error: Runner.java:4 Re-using @Linear variable hello" ) );
     }
 
 }
