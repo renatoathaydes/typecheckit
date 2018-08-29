@@ -65,8 +65,8 @@ public class TestUtils {
             @SuppressWarnings( "OptionalUsedAsFieldOrParameterType" ) Optional<Class<Object>> compiledClass,
             String expectedClassName,
             Class<?> expectedSuperType ) {
-        assertThat( compiledClass.orElseThrow( () -> new RuntimeException( "Error compiling" ) )
-                .asSubclass( Runnable.class )
+        assertThat( compiledClass.orElseThrow( () -> new RuntimeException( "Error compiling, see compiler output" ) )
+                .asSubclass( expectedSuperType )
                 .getName(), equalTo( expectedClassName ) );
     }
 
