@@ -128,4 +128,72 @@ public class LinearTypeCheckerNegativeTest extends TestUtils {
                 hasItem( "error: Runner.java:4 Re-using @Linear variable hello" ) );
     }
 
+    @Test
+    public void cannotUseLinearVariableInsideEnhancedForLoop() {
+        ByteArrayOutputStream writer = new ByteArrayOutputStream();
+
+        Optional<Class<Object>> compiledClass =
+                compileRunnableClassSnippet(
+                        "@Linear String hello = \"hello @Linear\";\n"
+                                + "for (char c : \"word\".chars()) {\n"
+                                + "    hello.toLowerCase(); // should fail here\n"
+                                + "}",
+                        new PrintStream( writer, true ) );
+
+        assertFalse( "Should not compile successfully", compiledClass.isPresent() );
+
+        String compilerOutput = writer.toString();
+        System.out.println( "-----\n" + compilerOutput + "\n------" );
+        List<String> outputLines = Arrays.asList( compilerOutput.split( "\n" ) );
+
+        assertThat( outputLines,
+                hasItem( "error: Runner.java:4 Re-using @Linear variable hello" ) );
+    }
+
+    @Test
+    public void cannotUseLinearVariableInsideWhileLoop() {
+        ByteArrayOutputStream writer = new ByteArrayOutputStream();
+
+        Optional<Class<Object>> compiledClass =
+                compileRunnableClassSnippet(
+                        "@Linear String hello = \"hello @Linear\";\n"
+                                + "int i = 1;\n"
+                                + "while (i++ < 10) {\n"
+                                + "    hello.toLowerCase(); // should fail here\n"
+                                + "}",
+                        new PrintStream( writer, true ) );
+
+        assertFalse( "Should not compile successfully", compiledClass.isPresent() );
+
+        String compilerOutput = writer.toString();
+        System.out.println( "-----\n" + compilerOutput + "\n------" );
+        List<String> outputLines = Arrays.asList( compilerOutput.split( "\n" ) );
+
+        assertThat( outputLines,
+                hasItem( "error: Runner.java:5 Re-using @Linear variable hello" ) );
+    }
+
+    @Test
+    public void cannotUseLinearVariableInsideDoWhileLoop() {
+        ByteArrayOutputStream writer = new ByteArrayOutputStream();
+
+        Optional<Class<Object>> compiledClass =
+                compileRunnableClassSnippet(
+                        "@Linear String hello = \"hello @Linear\";\n"
+                                + "int i = 1;\n"
+                                + "do {\n"
+                                + "    hello.toLowerCase(); // should fail here\n"
+                                + "} while (i++ < 10);",
+                        new PrintStream( writer, true ) );
+
+        assertFalse( "Should not compile successfully", compiledClass.isPresent() );
+
+        String compilerOutput = writer.toString();
+        System.out.println( "-----\n" + compilerOutput + "\n------" );
+        List<String> outputLines = Arrays.asList( compilerOutput.split( "\n" ) );
+
+        assertThat( outputLines,
+                hasItem( "error: Runner.java:5 Re-using @Linear variable hello" ) );
+    }
+
 }

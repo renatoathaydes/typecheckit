@@ -140,7 +140,7 @@ public final class LinearTypeChecker extends TypeChecker {
     @Override
     public Void visitDoWhileLoop( DoWhileLoopTree node, TypeCheckerUtils typeCheckerUtils ) {
         System.out.println( "visitDoWhileLoop " + node );
-        blockStack.push( BlockKind.OTHER );
+        blockStack.push( BlockKind.WHILE_LOOP );
         super.visitDoWhileLoop( node, typeCheckerUtils );
         blockStack.pop();
         return null;
@@ -149,7 +149,7 @@ public final class LinearTypeChecker extends TypeChecker {
     @Override
     public Void visitWhileLoop( WhileLoopTree node, TypeCheckerUtils typeCheckerUtils ) {
         System.out.println( "visitWhileLoop " + node );
-        blockStack.push( BlockKind.OTHER );
+        blockStack.push( BlockKind.WHILE_LOOP );
         super.visitWhileLoop( node, typeCheckerUtils );
         blockStack.pop();
         return null;
@@ -359,7 +359,7 @@ public final class LinearTypeChecker extends TypeChecker {
         LinearMark mark = allowedUsagesByVarName.get( nodeName );
 
         if ( mark != null ) {
-            if ( blockStack.peek() == BlockKind.FOR_LOOP ) {
+            if ( blockStack.peek().isLoop() ) {
                 // @Linear variable cannot be safely used in loops
                 mark.isUsedUp = true;
             }
