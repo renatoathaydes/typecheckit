@@ -1,5 +1,7 @@
 package com.typecheckit;
 
+import com.typecheckit.util.Mark;
+import com.typecheckit.util.VariableScope;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
 import org.junit.Test;

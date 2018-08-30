@@ -1,4 +1,4 @@
-package com.typecheckit;
+package com.typecheckit.util;
 
 import java.util.HashMap;
 import java.util.Map;

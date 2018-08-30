@@ -3,8 +3,6 @@ package com.typecheckit.linear;
 import com.typecheckit.TestUtils;
 import org.junit.Test;
 
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
 import java.util.Optional;
 
 public class LinearTypeCheckerPositiveTest extends TestUtils {
@@ -30,8 +28,6 @@ public class LinearTypeCheckerPositiveTest extends TestUtils {
 
     @Test
     public void canUseLinearVariableWithinDisjointIfBranches() {
-        ByteArrayOutputStream writer = new ByteArrayOutputStream();
-
         Optional<Class<Object>> compiledClass =
                 compileRunnableClassSnippet(
                         "@Linear String hello = \"hello @Linear\";\n"
@@ -39,8 +35,25 @@ public class LinearTypeCheckerPositiveTest extends TestUtils {
                                 + "    hello.toLowerCase();\n"
                                 + "} else {\n"
                                 + "    hello.toUpperCase();\n"
-                                + "}",
-                        new PrintStream( writer, true ) );
+                                + "}" );
+
+        assertSuccessfulCompilationOfClass( compiledClass );
+    }
+
+    @Test
+    public void canUseLinearVariableWithinManyDisjointIfBranches() {
+        Optional<Class<Object>> compiledClass =
+                compileRunnableClassSnippet(
+                        "@Linear String hello = \"hello @Linear\";\n"
+                                + "if (System.currentTimeMillis() > 20000000L) {\n"
+                                + "    hello.toLowerCase();\n"
+                                + "} else if (System.currentTimeMillis() > 20000L) {\n"
+                                + "    hello.length();\n"
+                                + "} else if (System.currentTimeMillis() > 20L) {\n"
+                                + "    hello.toUpperCase();\n"
+                                + "} else {\n"
+                                + "    hello.toString();\n"
+                                + "}" );
 
         assertSuccessfulCompilationOfClass( compiledClass );
     }

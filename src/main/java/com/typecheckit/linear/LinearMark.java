@@ -1,6 +1,6 @@
 package com.typecheckit.linear;
 
-import com.typecheckit.Mark;
+import com.typecheckit.util.Mark;
 
 final class LinearMark extends Mark<LinearMark> {
 

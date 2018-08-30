@@ -1,4 +1,4 @@
-package com.typecheckit;
+package com.typecheckit.util;
 
 /**
  * A mark that may be applied on a code element.

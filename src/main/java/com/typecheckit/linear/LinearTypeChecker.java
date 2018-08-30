@@ -4,8 +4,8 @@ import com.sun.source.tree.*;
 import com.sun.tools.javac.tree.JCTree;
 import com.typecheckit.BlockKind;
 import com.typecheckit.TypeChecker;
-import com.typecheckit.TypeCheckerUtils;
-import com.typecheckit.VariableScope;
+import com.typecheckit.util.TypeCheckerUtils;
+import com.typecheckit.util.VariableScope;
 import com.typecheckit.annotation.Linear;
 
 import java.util.List;

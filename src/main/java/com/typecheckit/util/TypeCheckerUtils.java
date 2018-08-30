@@ -1,4 +1,4 @@
-package com.typecheckit;
+package com.typecheckit.util;
 
 import com.sun.source.tree.CompilationUnitTree;
 import com.sun.source.tree.VariableTree;

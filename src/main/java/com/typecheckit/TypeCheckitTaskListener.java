@@ -5,6 +5,8 @@ import com.sun.source.util.TreePath;
 import com.sun.source.util.Trees;
 import com.sun.tools.javac.processing.JavacProcessingEnvironment;
 import com.sun.tools.javac.util.Log;
+import com.typecheckit.util.TypeCheckerUtils;
+
 import java.util.List;
 import javax.annotation.processing.Messager;
 
