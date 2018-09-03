@@ -9,50 +9,89 @@ import java.util.Stack;
  *
  * @param <M> type of marks that may be applied to variables
  */
-public class VariableScope<M extends Mark<M>> {
+public final class VariableScope<M extends Mark<M>> {
 
-    private final Stack<Map<String, M>> scopes = new Stack<>();
+    private final Stack<Scope<M>> scopes = new Stack<>();
 
     public VariableScope() {
-        scopes.push( new HashMap<>( 6 ) );
+        scopes.push( new Scope<>( "<root>", new HashMap<>( 6 ) ) );
     }
 
-    public void enterScope() {
-        Map<String, M> scopeLayer = new HashMap<>( 6 );
-        for ( Map.Entry<String, M> entry : currentScope().entrySet() ) {
-            scopeLayer.put( entry.getKey(), entry.getValue().enterNewScope() );
+    public int size() {
+        return scopes.size();
+    }
+
+    public void enterScope( String name ) {
+        Map<String, M> variables = new HashMap<>( 6 );
+        for ( Map.Entry<String, M> entry : currentScope().getVariables().entrySet() ) {
+            variables.put( entry.getKey(), entry.getValue().enterNewScope() );
         }
-        scopes.push( scopeLayer );
+        scopes.push( new Scope<>( name, variables ) );
     }
 
     public void duplicateScope() {
-        Map<String, M> scopeLayer = new HashMap<>( 6 );
-        for ( Map.Entry<String, M> entry : currentScope().entrySet() ) {
-            scopeLayer.put( entry.getKey(), entry.getValue().copy() );
+        Map<String, M> variables = new HashMap<>( 6 );
+        Scope<M> scope = currentScope();
+        for ( Map.Entry<String, M> entry : scope.getVariables().entrySet() ) {
+            variables.put( entry.getKey(), entry.getValue().copy() );
         }
-        scopes.push( scopeLayer );
+        scopes.push( new Scope<>( scope.getName() + "(duplicate)", variables ) );
     }
 
-    public Map<String, M> exitScope() {
+    public Scope<M> exitScope() {
         return scopes.pop();
     }
 
     public void swapScopes() {
-        Map<String, M> first = scopes.pop();
-        Map<String, M> second = scopes.pop();
+        Scope<M> first = scopes.pop();
+        Scope<M> second = scopes.pop();
         scopes.push( first );
         scopes.push( second );
     }
 
     public M get( String name ) {
-        return currentScope().get( name );
+        return currentScope().getVariables().get( name );
     }
 
     public void put( String name, M variable ) {
-        currentScope().put( name, variable );
+        currentScope().getVariables().put( name, variable );
     }
 
-    private Map<String, M> currentScope() {
+    private Scope<M> currentScope() {
         return scopes.peek();
     }
+
+    @Override
+    public String toString() {
+        return "VariableScope{" +
+                "scopesStack=" + scopes +
+                '}';
+    }
+
+    public static final class Scope<M> {
+        private final String name;
+        private final Map<String, M> variables;
+
+        public Scope( String name, Map<String, M> variables ) {
+            this.name = name;
+            this.variables = variables;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public Map<String, M> getVariables() {
+            return variables;
+        }
+
+        @Override
+        public String toString() {
+            return "Scope{" +
+                    "name='" + name + '\'' +
+                    ", variables=" + variables +
+                    '}';
+        }
+    }
+
 }

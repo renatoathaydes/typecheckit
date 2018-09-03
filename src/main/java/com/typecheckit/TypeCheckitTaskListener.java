@@ -47,7 +47,7 @@ public class TypeCheckitTaskListener implements com.sun.source.util.TaskListener
         TypeCheckerUtils utils = new TypeCheckerUtils( log, messager, trees, e.getCompilationUnit() );
 
         for ( TypeChecker typeChecker : typeCheckers ) {
-            typeChecker.scan( treePath, utils );
+            typeChecker.scan( treePath.getCompilationUnit(), utils );
         }
 
         if ( !hasInvokedTypeProcessingOver ) {

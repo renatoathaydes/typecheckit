@@ -4,9 +4,9 @@ import com.sun.source.tree.*;
 import com.sun.tools.javac.tree.JCTree;
 import com.typecheckit.BlockKind;
 import com.typecheckit.TypeChecker;
+import com.typecheckit.annotation.Linear;
 import com.typecheckit.util.TypeCheckerUtils;
 import com.typecheckit.util.VariableScope;
-import com.typecheckit.annotation.Linear;
 
 import java.util.List;
 import java.util.Map;
@@ -21,6 +21,18 @@ public final class LinearTypeChecker extends TypeChecker {
 
     private final VariableScope<LinearMark> allowedUsagesByVarName = new VariableScope<>();
     private final Stack<BlockKind> blockStack = new Stack<>();
+
+    @Override
+    public void stop() {
+        if ( !blockStack.isEmpty() ) {
+            throw new IllegalStateException( "Finished visit to LinearTypeChecker without clearing the blockStack" );
+        }
+        if ( allowedUsagesByVarName.size() != 1 ) {
+            System.out.println( allowedUsagesByVarName );
+            throw new IllegalStateException( "Finished visit to LinearTypeChecker with unexpected number of scopes " +
+                    "for variables: expected 1, but was " + allowedUsagesByVarName.size() );
+        }
+    }
 
     @Override
     public Void visitAssignment( AssignmentTree node, TypeCheckerUtils typeCheckerUtils ) {
@@ -49,7 +61,7 @@ public final class LinearTypeChecker extends TypeChecker {
     @Override
     public Void visitClass( ClassTree node, TypeCheckerUtils typeCheckerUtils ) {
         System.out.println( "visitClass " + node );
-        allowedUsagesByVarName.enterScope();
+        allowedUsagesByVarName.enterScope( "class-" + node.getSimpleName() );
         blockStack.push( BlockKind.OTHER );
         super.visitClass( node, typeCheckerUtils );
         blockStack.pop();
@@ -60,7 +72,7 @@ public final class LinearTypeChecker extends TypeChecker {
     @Override
     public Void visitMethod( MethodTree node, TypeCheckerUtils typeCheckerUtils ) {
         System.out.println( "visitMethod " + node );
-        allowedUsagesByVarName.enterScope();
+        allowedUsagesByVarName.enterScope( "method-" + node.getName() );
         blockStack.push( BlockKind.OTHER );
         super.visitMethod( node, typeCheckerUtils );
         blockStack.pop();
@@ -87,44 +99,48 @@ public final class LinearTypeChecker extends TypeChecker {
     @Override
     public Void visitBlock( BlockTree node, TypeCheckerUtils typeCheckerUtils ) {
         System.out.println( "visitBlock " + node );
-        boolean correctScopeAfterElseBlock = false;
-        if ( blockStack.peek() == IF_THEN_ELSE ) {
-            // first block of if/else block, update block stack so we know when we get to the else block
-            blockStack.pop();
-            blockStack.push( ELSE );
-
+        BlockKind blockKind = blockStack.peek();
+        if ( blockKind == IF_THEN_ELSE ) {
             // duplicate the current scope before entering the 'then' branch...
-            // this causes the 'then' branch to become "detached" from the scope below it
+            // this causes the 'then' branch to become "detached" from the scope below it.
+            // that's necessary because each disjoint if/else branch must have independent scopes which are
+            // merged only after the else branches are visited.
             allowedUsagesByVarName.duplicateScope();
-        } else if ( blockStack.peek() == ELSE ) {
-            // swap the 'then' branch with the scope that was active before it was entered...
-            // we enter the 'else' scope still "connected" to the previously active scope, so that the
-            // corrections from the 'then' branch can be done directly on the entered scope
+
+            super.visitBlock( node, typeCheckerUtils );
+
+            // swap the detached 'then' scope with the active scope instead of simply exiting it...
+            // this puts the active scope on the top of the stack, so that the 'else' branch can use it,
+            // then merge its scope with the 'then' scope.
             allowedUsagesByVarName.swapScopes();
-
-            correctScopeAfterElseBlock = true;
-        }
-
-        allowedUsagesByVarName.enterScope();
-
-        super.visitBlock( node, typeCheckerUtils );
-
-        if ( correctScopeAfterElseBlock ) {
-            Map<String, LinearMark> elseScope = allowedUsagesByVarName.exitScope();
-
-            // put the active scope back in its place, so we can remove the detached 'then' branch
-            allowedUsagesByVarName.swapScopes();
-
-            Map<String, LinearMark> thenScope = allowedUsagesByVarName.exitScope();
-
-            // apply corrections directly on the 'else' scope because it is "connected" to the active scope
-            applyScopeCorrections( elseScope, thenScope );
         } else {
-            // simple case, just exit
+            // simple block
+            allowedUsagesByVarName.enterScope( node.getKind().name() );
+            super.visitBlock( node, typeCheckerUtils );
             allowedUsagesByVarName.exitScope();
         }
 
         return null;
+    }
+
+    private void applyElseBlocksCorrections( Map<String, LinearMark> elseScope ) {
+        do {
+            // swap the top scopes so we can reach the 'then' branch
+            allowedUsagesByVarName.swapScopes();
+
+            Map<String, LinearMark> thenScope = allowedUsagesByVarName.exitScope().getVariables();
+
+            // apply corrections directly on the 'else' scope because it is "connected" to the active scope
+            applyScopeCorrections( elseScope, thenScope );
+        } while ( popBlockKindIfIsElse() );
+    }
+
+    private boolean popBlockKindIfIsElse() {
+        boolean isElse = blockStack.peek() == ELSE;
+        if ( isElse ) {
+            blockStack.pop();
+        }
+        return isElse;
     }
 
     private void applyScopeCorrections( Map<String, LinearMark> activeScope, Map<String, LinearMark> temporaryScope ) {
@@ -229,11 +245,26 @@ public final class LinearTypeChecker extends TypeChecker {
 
     @Override
     public Void visitIf( IfTree node, TypeCheckerUtils typeCheckerUtils ) {
-        boolean hasElse = node.getElseStatement() != null;
+        StatementTree elseStatement = node.getElseStatement();
+        boolean hasElse = elseStatement != null;
         System.out.println( "visitIf " + node );
+        scan( node.getCondition(), typeCheckerUtils );
         blockStack.push( hasElse ? IF_THEN_ELSE : IF_THEN );
-        super.visitIf( node, typeCheckerUtils );
+        scan( node.getThenStatement(), typeCheckerUtils );
         blockStack.pop();
+        if ( hasElse ) {
+            blockStack.push( ELSE );
+            // if the else statement is another "if", we will re-enter this method from here, piling up ELSEs
+            scan( elseStatement, typeCheckerUtils );
+        }
+
+        // cleanup any ELSE blocks that may have been "piled up" as we visited chains of if-else branches
+        if ( blockStack.peek() == ELSE ) {
+            blockStack.pop();
+            allowedUsagesByVarName.enterScope( "ELSE" );
+            Map<String, LinearMark> elseScope = allowedUsagesByVarName.exitScope().getVariables();
+            applyElseBlocksCorrections( elseScope );
+        }
         return null;
     }
 

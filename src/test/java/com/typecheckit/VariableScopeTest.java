@@ -71,7 +71,7 @@ public class VariableScopeTest {
         // there should always be a default scope we can add variables to
         variableScope.put( "test", new TestMark( 1, true ) );
 
-        variableScope.enterScope();
+        variableScope.enterScope("");
 
         // child scope should inherit parent's variables
         assertThat( variableScope.get( "test" ), hasIndex( 1 ) );
@@ -83,7 +83,7 @@ public class VariableScopeTest {
         assertThat( variableScope.get( "child" ), hasIndex( 33 ) );
         assertThat( variableScope.get( "other" ), nullValue() );
 
-        variableScope.enterScope();
+        variableScope.enterScope("");
 
         // child scope should inherit parent's variables
         assertThat( variableScope.get( "test" ), hasIndex( 1 ) );
@@ -124,7 +124,7 @@ public class VariableScopeTest {
         // there should always be a default scope we can add variables to
         variableScope.put( "test", new TestMark( 1, false ) );
 
-        variableScope.enterScope();
+        variableScope.enterScope("");
 
         // child scope should inherit parent's variables
         assertThat( variableScope.get( "test" ), hasIndex( 2 ) );
@@ -136,7 +136,7 @@ public class VariableScopeTest {
         assertThat( variableScope.get( "child" ), hasIndex( 33 ) );
         assertThat( variableScope.get( "other" ), nullValue() );
 
-        variableScope.enterScope();
+        variableScope.enterScope("");
 
         // child scope should inherit parent's variables
         assertThat( variableScope.get( "test" ), hasIndex( 3 ) );
@@ -176,7 +176,7 @@ public class VariableScopeTest {
 
         variableScope.put( "first", new TestMark( 1, true ) );
 
-        variableScope.enterScope();
+        variableScope.enterScope("");
 
         variableScope.put( "second", new TestMark( 10, true ) );
 

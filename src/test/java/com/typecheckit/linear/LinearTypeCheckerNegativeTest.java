@@ -79,6 +79,25 @@ public class LinearTypeCheckerNegativeTest extends TestUtils {
     }
 
     @Test
+    public void cannotUseLinearVariableUsedUpFromInsideIfStatementBlockInAnotherBlock() {
+        ByteArrayOutputStream writer = new ByteArrayOutputStream();
+
+        Optional<Class<Object>> compiledClass =
+                compileRunnableClassSnippet(
+                        "@Linear String hello = \"hello @Linear\";\n"
+                                + "if (System.currentTimeMillis() > 20000000L) {\n"
+                                + "    System.out.println(hello); // used up\n"
+                                + "}\n"
+                                + "if (System.currentTimeMillis() > 20000L) {\n"
+                                + "    hello = hello.toLowerCase(); // should fail here\n"
+                                + "}",
+                        new PrintStream( writer, true ) );
+
+        assertFalse( "Should not compile successfully", compiledClass.isPresent() );
+        assertCompilationErrorContains( writer, "error: Runner.java:7 Re-using @Linear variable hello" );
+    }
+
+    @Test
     public void cannotUseLinearVariableInsideForLoop() {
         ByteArrayOutputStream writer = new ByteArrayOutputStream();
 

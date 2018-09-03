@@ -6,12 +6,7 @@ import com.sun.tools.javac.main.JavaCompiler;
 import com.sun.tools.javac.processing.JavacProcessingEnvironment;
 import com.sun.tools.javac.util.Context;
 import com.typecheckit.linear.LinearTypeChecker;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.ServiceLoader;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
+
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.annotation.processing.RoundEnvironment;
@@ -19,12 +14,15 @@ import javax.annotation.processing.SupportedAnnotationTypes;
 import javax.annotation.processing.SupportedSourceVersion;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.TypeElement;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.ServiceLoader;
+import java.util.Set;
 
 @SupportedSourceVersion( SourceVersion.RELEASE_8 )
 @SupportedAnnotationTypes( "*" )
 public class TypeCheckitProcessor extends AbstractProcessor {
-
-    private final AtomicReference<TypeCheckitTaskListener> taskListenerRef = new AtomicReference<>();
 
     @Override
     public synchronized void init( ProcessingEnvironment env ) {
@@ -47,7 +45,6 @@ public class TypeCheckitProcessor extends AbstractProcessor {
         }
 
         final TypeCheckitTaskListener listener = new TypeCheckitTaskListener( ( JavacProcessingEnvironment ) env, typeCheckers );
-        taskListenerRef.set( listener );
 
         System.out.println( "Processor options: " + env.getOptions() );
 
