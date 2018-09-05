@@ -1,11 +1,18 @@
 package com.typecheckit.linear;
 
 import com.typecheckit.TestUtils;
+import com.typecheckit.annotation.Linear;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Optional;
 
 public class LinearTypeCheckerPositiveTest extends TestUtils {
+
+    @Before
+    public void setup() {
+        addImports( Linear.class.getName() );
+    }
 
     @Test
     public void canAssignLiteralToLinearVariable() {

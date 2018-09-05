@@ -6,10 +6,13 @@ import com.athaydes.osgiaas.javac.internal.compiler.OsgiaasJavaCompiler;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static java.util.Arrays.asList;
+import static java.util.stream.Collectors.joining;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.junit.Assert.assertThat;
@@ -21,6 +24,16 @@ public class TestUtils {
                     DefaultClassLoaderContext.INSTANCE,
                     asList( "-processor",
                             "com.typecheckit.TypeCheckitProcessor" ) );
+
+    private final Set<String> imports = new HashSet<>( 5 );
+
+    protected void addImports( String... imports ) {
+        this.imports.addAll( Arrays.asList( imports ) );
+    }
+
+    protected void clearImports() {
+        imports.clear();
+    }
 
     public Optional<Class<Object>> compileRunnableClassSnippet( String codeSnippet ) {
         return compileRunnableClassSnippet( codeSnippet, "", "Runner", System.out );
@@ -35,13 +48,14 @@ public class TestUtils {
                                                                 String className,
                                                                 PrintStream writer ) {
         String qualifiedClassName = pkg.isEmpty() ? className : pkg + "." + className;
-        String code = String.format( "%s import com.typecheckit.annotation.Linear;"
+        String code = String.format( "%s %s"
                         + "public class %s implements Runnable {"
                         + "  public void run() {\n"
                         + "    %s\n"
                         + "  }"
                         + "}",
                 pkg.isEmpty() ? "" : "package " + pkg + ";",
+                imports.stream().map( i -> String.format( "import %s;", i ) ).collect( joining() ),
                 className,
                 codeSnippet );
 

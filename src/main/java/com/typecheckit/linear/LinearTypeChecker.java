@@ -2,6 +2,7 @@ package com.typecheckit.linear;
 
 import com.sun.source.tree.CompilationUnitTree;
 import com.sun.source.tree.IdentifierTree;
+import com.sun.source.tree.ImportTree;
 import com.sun.source.tree.VariableTree;
 import com.sun.tools.javac.tree.JCTree;
 import com.typecheckit.ScopeBasedTypeChecker;
@@ -9,16 +10,41 @@ import com.typecheckit.annotation.Linear;
 import com.typecheckit.util.TypeCheckerUtils;
 import com.typecheckit.util.VariableScope.Scope;
 
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 import static javax.tools.Diagnostic.Kind.ERROR;
 
 public final class LinearTypeChecker extends ScopeBasedTypeChecker<LinearMark> {
 
+    private static final String LINEAR_CLASS_NAME = Linear.class.getName();
+    private static final String LINEAR_PKG_STAR = Linear.class.getPackage().getName() + ".*";
+
+    private final Set<String> linearAnnotationNames = new HashSet<>( 2 );
+
+    public LinearTypeChecker() {
+        linearAnnotationNames.add( LINEAR_CLASS_NAME );
+    }
+
+    private boolean isLinear( VariableTree node, TypeCheckerUtils typeCheckerUtils ) {
+        return typeCheckerUtils.annotationNames( node ).stream()
+                .anyMatch( linearAnnotationNames::contains );
+    }
+
+    @Override
+    public Void visitImport( ImportTree node, TypeCheckerUtils typeCheckerUtils ) {
+        String importId = node.getQualifiedIdentifier().toString();
+        boolean linearTypeImported = importId.equals( LINEAR_CLASS_NAME ) ||
+                importId.equals( LINEAR_PKG_STAR );
+        if ( linearTypeImported ) {
+            linearAnnotationNames.add( "Linear" );
+        }
+        return super.visitImport( node, typeCheckerUtils );
+    }
+
     @Override
     public Void visitVariable( VariableTree node, TypeCheckerUtils typeCheckerUtils ) {
-        List<String> annotations = typeCheckerUtils.annotationNames( node );
-        if ( annotations.contains( Linear.class.getName() ) ) {
+        if ( isLinear( node, typeCheckerUtils ) ) {
             currentScope().getVariables().put( node.getName().toString(), new LinearMark() );
         }
         return super.visitVariable( node, typeCheckerUtils );

@@ -1,6 +1,8 @@
 package com.typecheckit.linear;
 
 import com.typecheckit.TestUtils;
+import com.typecheckit.annotation.Linear;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;
@@ -10,6 +12,67 @@ import java.util.Optional;
 import static org.junit.Assert.assertFalse;
 
 public class LinearTypeCheckerNegativeTest extends TestUtils {
+
+    @Before
+    public void setup() {
+        addImports( Linear.class.getName() );
+    }
+
+    @Test
+    public void linearAnnotationCanBeRecognizedWithoutImport() {
+        clearImports();
+
+        ByteArrayOutputStream writer = new ByteArrayOutputStream();
+
+        Optional<Class<Object>> compiledClass =
+                compileRunnableClassSnippet(
+                        "@" + Linear.class.getName() + " String s = \"hello @Linear\";\n"
+                                + "String t = s.toUpperCase(); // used up\n"
+                                + "System.out.println(s.toLowerCase()); // should fail here\n"
+                                + "System.out.println(t);",
+                        new PrintStream( writer, true ) );
+
+        assertFalse( "Should not compile successfully", compiledClass.isPresent() );
+        assertCompilationErrorContains( writer, "error: Runner.java:4 Re-using @Linear variable s" );
+    }
+
+    @Test
+    public void linearAnnotationCanBeRecognizedWithStarImport() {
+        clearImports();
+        addImports( Linear.class.getPackage().getName() + ".*" );
+
+        ByteArrayOutputStream writer = new ByteArrayOutputStream();
+
+        Optional<Class<Object>> compiledClass =
+                compileRunnableClassSnippet(
+                        "@Linear String s = \"hello @Linear\";\n"
+                                + "String t = s.toUpperCase(); // used up\n"
+                                + "System.out.println(s.toLowerCase()); // should fail here\n"
+                                + "System.out.println(t);",
+                        new PrintStream( writer, true ) );
+
+        assertFalse( "Should not compile successfully", compiledClass.isPresent() );
+        assertCompilationErrorContains( writer, "error: Runner.java:4 Re-using @Linear variable s" );
+    }
+
+    @Test
+    public void linearAnnotationCanBeRecognizedWithAndWithoutQualifiedName() {
+        ByteArrayOutputStream writer = new ByteArrayOutputStream();
+
+        Optional<Class<Object>> compiledClass =
+                compileRunnableClassSnippet(
+                        "@" + Linear.class.getName() + " int a = 1;\n"
+                                + "@Linear int b = 2;\n"
+                                + "@Linear int c = a + b; // both a and b used up\n"
+                                + "System.out.println(a);\n"
+                                + "System.out.println(b);\n"
+                                + "System.out.println(c);",
+                        new PrintStream( writer, true ) );
+
+        assertFalse( "Should not compile successfully", compiledClass.isPresent() );
+        assertCompilationErrorContains( writer, "error: Runner.java:5 Re-using @Linear variable a" );
+        assertCompilationErrorContains( writer, "error: Runner.java:6 Re-using @Linear variable b" );
+    }
 
     @Test
     public void cannotUseLinearVariableAfterUsedUp() {
