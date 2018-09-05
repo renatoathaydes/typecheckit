@@ -98,6 +98,28 @@ public class LinearTypeCheckerNegativeTest extends TestUtils {
     }
 
     @Test
+    public void cannotUseLinearVariableInsideMoreThanOneNestedIfBlock() {
+        ByteArrayOutputStream writer = new ByteArrayOutputStream();
+
+        Optional<Class<Object>> compiledClass =
+                compileRunnableClassSnippet(
+                        "@Linear String hello = \"hello @Linear\";\n"
+                                + "long t = System.currentTimeMillis();\n"
+                                + "if (t > 20000000L) {\n"
+                                + "    if (t > 20000L) {\n"
+                                + "        System.out.println(hello); // used up\n"
+                                + "    } else {}\n"
+                                + "}\n"
+                                + "if (t < 20000L) {\n"
+                                + "    hello = hello.toLowerCase(); // should fail here\n"
+                                + "}",
+                        new PrintStream( writer, true ) );
+
+        assertFalse( "Should not compile successfully", compiledClass.isPresent() );
+        assertCompilationErrorContains( writer, "error: Runner.java:10 Re-using @Linear variable hello" );
+    }
+
+    @Test
     public void cannotUseLinearVariableInsideForLoop() {
         ByteArrayOutputStream writer = new ByteArrayOutputStream();
 

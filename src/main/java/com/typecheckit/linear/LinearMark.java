@@ -18,4 +18,10 @@ final class LinearMark extends Mark<LinearMark> {
         linearMark.isUsedUp = this.isUsedUp;
         return linearMark;
     }
+
+    @Override
+    public void merge( LinearMark mark ) {
+        this.isUsedUp |= mark.isUsedUp;
+    }
+
 }

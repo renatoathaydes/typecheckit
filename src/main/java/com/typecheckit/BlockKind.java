@@ -1,7 +1,7 @@
 package com.typecheckit;
 
 public enum BlockKind {
-    IF_THEN, IF_THEN_ELSE, ELSE, FOR_LOOP, WHILE_LOOP, OTHER;
+    ROOT, CLASS, METHOD, IF, FOR_LOOP, WHILE_LOOP, SYNCHRONIZED, OTHER;
 
     public boolean isLoop() {
         return this == FOR_LOOP || this == WHILE_LOOP;

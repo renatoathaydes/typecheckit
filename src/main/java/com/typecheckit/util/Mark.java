@@ -11,4 +11,6 @@ public abstract class Mark<M> {
 
     protected abstract M copy();
 
+    public abstract void merge( M mark );
+
 }

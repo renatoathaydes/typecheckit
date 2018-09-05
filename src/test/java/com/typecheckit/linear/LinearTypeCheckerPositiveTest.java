@@ -86,4 +86,39 @@ public class LinearTypeCheckerPositiveTest extends TestUtils {
         assertSuccessfulCompilationOfClass( compiledClass );
     }
 
+    @Test
+    public void canUseLinearVariableWithinDisjointNestedIfBranches() {
+        Optional<Class<Object>> compiledClass =
+                compileRunnableClassSnippet(
+                        "@Linear String hello = \"hello @Linear\";\n"
+                                + "long t = System.currentTimeMillis();\n"
+                                + "if (t > 0)\n"
+                                + "  if (10 < t && t < 20) hello.toUpperCase();\n"
+                                + "  else hello.toLowerCase();\n"
+                                + "else if (t < -10L)\n"
+                                + "  if (t < -20L) hello.length();\n"
+                                + "  else if (t < -30L) hello.length();\n"
+                                + "  else if (t < -100L)\n"
+                                + "    if (t < 200L) hello.toUpperCase();\n"
+                                + "" );
+
+        assertSuccessfulCompilationOfClass( compiledClass );
+    }
+
+    @Test
+    public void canUseLinearVariableWithinIfTryBranches() {
+        Optional<Class<Object>> compiledClass =
+                compileRunnableClassSnippet(
+                        "@Linear String hello = \"hello @Linear\";\n"
+                                + "if (System.currentTimeMillis() > 20000000L) try {\n"
+                                + "  hello.toUpperCase();\n"
+                                + "} catch (RuntimeException e) {\n"
+                                + "  e.printStackTrace();\n"
+                                + "} else {\n"
+                                + "  hello.toLowerCase();\n"
+                                + "}" );
+
+        assertSuccessfulCompilationOfClass( compiledClass );
+    }
+
 }
