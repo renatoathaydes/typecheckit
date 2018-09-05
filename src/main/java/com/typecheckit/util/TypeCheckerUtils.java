@@ -3,10 +3,10 @@ package com.typecheckit.util;
 import com.sun.source.tree.CompilationUnitTree;
 import com.sun.source.tree.VariableTree;
 import com.sun.source.util.Trees;
-import com.sun.tools.javac.tree.JCTree;
 import com.sun.tools.javac.util.Log;
-import java.util.List;
+
 import javax.annotation.processing.Messager;
+import java.util.List;
 
 import static java.util.stream.Collectors.toList;
 
@@ -43,7 +43,7 @@ public class TypeCheckerUtils {
 
     public List<String> annotationNames( VariableTree var ) {
         return var.getModifiers().getAnnotations().stream()
-                .map( a -> ( ( JCTree.JCIdent ) a.getAnnotationType() ).sym.toString() )
+                .map( a -> a.getAnnotationType().toString() )
                 .collect( toList() );
     }
 
