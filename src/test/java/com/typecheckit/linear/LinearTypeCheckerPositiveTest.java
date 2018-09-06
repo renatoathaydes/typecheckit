@@ -17,8 +17,18 @@ public class LinearTypeCheckerPositiveTest extends TestUtils {
     @Test
     public void canAssignLiteralToLinearVariable() {
         Optional<Class<Object>> compiledClass = compileRunnableClassSnippet(
-                "@Linear String s = \"hello @Linear\";\n" +
-                        "System.out.println(s);" );
+                "@Linear String s = \"hello @Linear\";\n"
+                        + "System.out.println(s);" );
+
+        assertSuccessfulCompilationOfClass( compiledClass );
+    }
+
+    @Test
+    public void canAssignLinearVariableAfterDeclaration() {
+        Optional<Class<Object>> compiledClass = compileRunnableClassSnippet(
+                "@Linear int x;\n"
+                        + "x = 10;\n"
+                        + "System.out.println(x);" );
 
         assertSuccessfulCompilationOfClass( compiledClass );
     }

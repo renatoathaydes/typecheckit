@@ -1,6 +1,8 @@
 package com.typecheckit.linear;
 
+import com.sun.source.tree.AssignmentTree;
 import com.sun.source.tree.CompilationUnitTree;
+import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.IdentifierTree;
 import com.sun.source.tree.ImportTree;
 import com.sun.source.tree.VariableTree;
@@ -21,6 +23,7 @@ public final class LinearTypeChecker extends ScopeBasedTypeChecker<LinearMark> {
     private static final String LINEAR_PKG_STAR = Linear.class.getPackage().getName() + ".*";
 
     private final Set<String> linearAnnotationNames = new HashSet<>( 2 );
+    private ExpressionTree assigningVariable;
 
     public LinearTypeChecker() {
         linearAnnotationNames.add( LINEAR_CLASS_NAME );
@@ -51,7 +54,19 @@ public final class LinearTypeChecker extends ScopeBasedTypeChecker<LinearMark> {
     }
 
     @Override
+    public Void visitAssignment( AssignmentTree node, TypeCheckerUtils typeCheckerUtils ) {
+        assigningVariable = node.getVariable();
+        super.visitAssignment( node, typeCheckerUtils );
+        assigningVariable = null;
+        return null;
+    }
+
+    @Override
     public Void visitIdentifier( IdentifierTree node, TypeCheckerUtils typeCheckerUtils ) {
+        if ( node == assigningVariable ) {
+            // ignore identifier being assigned to
+            return super.visitIdentifier( node, typeCheckerUtils );
+        }
         String nodeName = node.getName().toString();
         Scope<LinearMark> scope = currentScope();
         LinearMark mark = scope.getVariables().get( nodeName );
