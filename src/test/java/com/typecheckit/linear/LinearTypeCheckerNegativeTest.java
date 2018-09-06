@@ -248,4 +248,19 @@ public class LinearTypeCheckerNegativeTest extends TestUtils {
         assertCompilationErrorContains( writer, "error: Runner.java:5 Re-using @Linear variable hello" );
     }
 
+    @Test
+    public void cannotUseLinearVariableInTernaryOperatorAssignmentAfterUsedUp() {
+        ByteArrayOutputStream writer = new ByteArrayOutputStream();
+
+        Optional<Class<Object>> compiledClass =
+                compileRunnableClassSnippet(
+                        "@Linear int x = 10;\n"
+                                + "int y = x > 5 ? 0 : 20; // used up x\n"
+                                + "int z = y > 1 ? x : -1; // should fail\n"
+                                + "System.out.println(z);",
+                        new PrintStream( writer, true ) );
+
+        assertFalse( "Should not compile successfully", compiledClass.isPresent() );
+        assertCompilationErrorContains( writer, "error: Runner.java:4 Re-using @Linear variable x" );
+    }
 }

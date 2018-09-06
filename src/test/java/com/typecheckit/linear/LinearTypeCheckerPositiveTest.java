@@ -138,4 +138,36 @@ public class LinearTypeCheckerPositiveTest extends TestUtils {
         assertSuccessfulCompilationOfClass( compiledClass );
     }
 
+    @Test
+    public void canAssignLinearVariableWithinDisjointIfBranches() {
+        Optional<Class<Object>> compiledClass =
+                compileRunnableClassSnippet(
+                        "@Linear int x;\n"
+                                + "if (System.currentTimeMillis() > 20000000L) {\n"
+                                + "    x = 10;\n"
+                                + "} else if (System.currentTimeMillis() > 20000L) {\n"
+                                + "    x = 20;\n"
+                                + "} else {\n"
+                                + "    x = 30;\n"
+                                + "}\n"
+                                + "System.out.println(x);" );
+
+        assertSuccessfulCompilationOfClass( compiledClass );
+    }
+
+    @Test
+    public void canAssignLinearVariableWithinDisjointTernaryOperatorBranches() {
+        Optional<Class<Object>> compiledClass =
+                compileRunnableClassSnippet(
+                        "@Linear int x =\n"
+                                + "(System.currentTimeMillis() > 20000000L)\n"
+                                + "?   10\n"
+                                + ": (System.currentTimeMillis() > 20000L)\n"
+                                + "?   20\n"
+                                + ":   30;\n"
+                                + "System.out.println(x);" );
+
+        assertSuccessfulCompilationOfClass( compiledClass );
+    }
+
 }
