@@ -170,4 +170,19 @@ public class LinearTypeCheckerPositiveTest extends TestUtils {
         assertSuccessfulCompilationOfClass( compiledClass );
     }
 
+    @Test
+    public void canUseLinearVariableWithinMutuallyExclusiveSwitchBranches() {
+        Optional<Class<Object>> compiledClass =
+                compileRunnableClassSnippet(
+                        "@Linear String x = \"\"; @Linear int n = 1;\n"
+                                + "switch (n) {\n"
+                                + "  case 1: x.toString(); break;\n"
+                                + "  case 2: x.toUpperCase(); break;\n"
+                                + "  case 3: x.toLowerCase(); break;\n"
+                                + "  default: x.hashCode();\n"
+                                + "}" );
+
+        assertSuccessfulCompilationOfClass( compiledClass );
+    }
+
 }

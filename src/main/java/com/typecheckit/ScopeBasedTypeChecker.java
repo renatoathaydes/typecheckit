@@ -5,9 +5,15 @@ import com.typecheckit.util.Mark;
 import com.typecheckit.util.TypeCheckerUtils;
 import com.typecheckit.util.VariableScope;
 
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import static com.typecheckit.BlockKind.IF;
+import static com.typecheckit.BlockKind.SWITCH;
+import static com.typecheckit.BlockKind.SWITCH_CASE;
+import static java.util.Collections.singleton;
 
 public abstract class ScopeBasedTypeChecker<M extends Mark<M>> extends DebugTypeChecker {
 
@@ -117,7 +123,27 @@ public abstract class ScopeBasedTypeChecker<M extends Mark<M>> extends DebugType
 
     @Override
     public Void visitSwitch( SwitchTree node, TypeCheckerUtils typeCheckerUtils ) {
-        return super.visitSwitch( node, typeCheckerUtils );
+        scopes.enterScope( SWITCH );
+        scan( node.getExpression(), typeCheckerUtils );
+        Iterator<? extends CaseTree> cases = node.getCases().iterator();
+        if ( cases.hasNext() ) {
+            visitSwitchElseCase( new SwitchElseCase( cases ), typeCheckerUtils );
+        }
+        scopes.exitScope();
+        return null;
+    }
+
+    private void visitSwitchElseCase( SwitchElseCase node, TypeCheckerUtils typeCheckerUtils ) {
+        SwitchElseCase elseStatement = node.getElseStatement();
+        boolean hasElse = elseStatement != null;
+        scopes.enterScope( SWITCH_CASE );
+
+        if ( hasElse ) {
+            scanMutuallyExclusiveTrees( node.primaryCase, elseStatement, typeCheckerUtils );
+        } else {
+            scan( node.primaryCase, typeCheckerUtils );
+            scopes.exitScope();
+        }
     }
 
     @Override
@@ -159,28 +185,43 @@ public abstract class ScopeBasedTypeChecker<M extends Mark<M>> extends DebugType
         scopes.enterScope( IF );
 
         if ( hasElse ) {
-            // duplicate the current scope before scanning the 'then' branch...
-            // this causes the 'then' branch to become "detached" from the scope below it.
-            // that's necessary because each disjoint if/else branch must have independent scopes which are
-            // merged only after the else branches are visited.
-            scopes.duplicateScope();
-            scan( node.getThenStatement(), typeCheckerUtils );
-
-            // swap the detached 'then' scope with the active scope instead of simply exiting it...
-            // this puts the active scope on the top of the stack, so that the 'else' branch can use it,
-            // then merge its scope with the 'then' scope.
-            scopes.swapScopes();
-
-            scan( elseStatement, typeCheckerUtils );
-
-            Map<String, M> elseScope = scopes.exitScope().getVariables();
-            Map<String, M> thenScope = scopes.exitScope().getVariables();
-            applyScopeCorrections( elseScope, thenScope );
+            scanMutuallyExclusiveTrees( singleton( node.getThenStatement() ), elseStatement, typeCheckerUtils );
         } else {
             scan( node.getThenStatement(), typeCheckerUtils );
             scopes.exitScope();
         }
         return null;
+    }
+
+    private boolean isCaseBreaking( CaseTree caseTree ) {
+        List<? extends StatementTree> statements = caseTree.getStatements();
+        if ( !statements.isEmpty() ) {
+            StatementTree lastStatement = statements.get( statements.size() - 1 );
+            return lastStatement instanceof BreakTree;
+        }
+        return false;
+    }
+
+    private void scanMutuallyExclusiveTrees( Iterable<? extends Tree> tree1,
+                                             Tree tree2,
+                                             TypeCheckerUtils typeCheckerUtils ) {
+        // duplicate the current scope before scanning the first branch...
+        // this causes the branch to become "detached" from the scope below it.
+        // that's necessary because each disjoint branch must have independent scopes which are
+        // merged only after the second branch is visited.
+        scopes.duplicateScope();
+        scan( tree1, typeCheckerUtils );
+
+        // swap the detached first scope with the active scope instead of simply exiting it...
+        // this puts the active scope on the top of the stack, so that the second branch can use it,
+        // then merge its scope with the first scope.
+        scopes.swapScopes();
+
+        scan( tree2, typeCheckerUtils );
+
+        Map<String, M> activeScope = scopes.exitScope().getVariables();
+        Map<String, M> tempScope = scopes.exitScope().getVariables();
+        applyScopeCorrections( activeScope, tempScope );
     }
 
     private void applyScopeCorrections( Map<String, M> activeScope, Map<String, M> temporaryScope ) {
@@ -350,6 +391,42 @@ public abstract class ScopeBasedTypeChecker<M extends Mark<M>> extends DebugType
     @Override
     public Void visitErroneous( ErroneousTree node, TypeCheckerUtils typeCheckerUtils ) {
         return super.visitErroneous( node, typeCheckerUtils );
+    }
+
+    private class SwitchElseCase implements Tree {
+
+        private final List<CaseTree> primaryCase;
+        private final SwitchElseCase elseCase;
+
+        SwitchElseCase( Iterator<? extends CaseTree> cases ) {
+            primaryCase = new ArrayList<>( 4 );
+            CaseTree nextCase = cases.next();
+            primaryCase.add( nextCase );
+            while ( !isCaseBreaking( nextCase ) ) {
+                if ( cases.hasNext() ) {
+                    nextCase = cases.next();
+                    primaryCase.add( nextCase );
+                } else {
+                    break;
+                }
+            }
+            elseCase = cases.hasNext() ? new SwitchElseCase( cases ) : null;
+        }
+
+        @Override
+        public Kind getKind() {
+            return Kind.CASE;
+        }
+
+        @Override
+        public <R, D> R accept( TreeVisitor<R, D> visitor, D data ) {
+            visitSwitchElseCase( this, ( TypeCheckerUtils ) data );
+            return null;
+        }
+
+        SwitchElseCase getElseStatement() {
+            return elseCase;
+        }
     }
 
 }

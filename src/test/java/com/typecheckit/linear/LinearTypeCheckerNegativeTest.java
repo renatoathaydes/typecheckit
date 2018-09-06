@@ -263,4 +263,23 @@ public class LinearTypeCheckerNegativeTest extends TestUtils {
         assertFalse( "Should not compile successfully", compiledClass.isPresent() );
         assertCompilationErrorContains( writer, "error: Runner.java:4 Re-using @Linear variable x" );
     }
+
+    @Test
+    public void cannotUseLinearVariableWithinFallThroughSwitchBranches() {
+        ByteArrayOutputStream writer = new ByteArrayOutputStream();
+
+        Optional<Class<Object>> compiledClass =
+                compileRunnableClassSnippet(
+                        "@Linear String x = \"\"; @Linear int n = 1;\n"
+                                + "switch (n) {\n"
+                                + "  case 1: x.toString(); break;\n"
+                                + "  case 2: x.toUpperCase(); // fall-through\n"
+                                + "  case 3: x.toLowerCase(); break;\n"
+                                + "  default: x.hashCode();\n"
+                                + "}",
+                        new PrintStream( writer, true ) );
+
+        assertFalse( "Should not compile successfully", compiledClass.isPresent() );
+        assertCompilationErrorContains( writer, "error: Runner.java:6 Re-using @Linear variable x" );
+    }
 }
