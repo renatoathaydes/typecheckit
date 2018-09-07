@@ -67,10 +67,10 @@ public final class LinearTypeChecker extends ScopeBasedTypeChecker<LinearMark> {
 
     @Override
     public Void visitAssignment( AssignmentTree node, TypeCheckerUtils typeCheckerUtils ) {
-        // variable does not need to be scanned as we now know it's not being used, but assigned to
         ExpressionTree variable = node.getVariable();
         ExpressionTree expression = node.getExpression();
         if ( variable instanceof IdentifierTree ) {
+            // variable does not need to be scanned as we now know it's not being used, but assigned to
             IdentifierTree idVar = ( IdentifierTree ) variable;
             if ( expression instanceof IdentifierTree ) {
                 IdentifierTree idExpr = ( IdentifierTree ) expression;
@@ -79,6 +79,7 @@ public final class LinearTypeChecker extends ScopeBasedTypeChecker<LinearMark> {
                 scan( expression, typeCheckerUtils );
             }
         } else {
+            scan( variable, typeCheckerUtils );
             scan( expression, typeCheckerUtils );
         }
         return null;
@@ -91,7 +92,6 @@ public final class LinearTypeChecker extends ScopeBasedTypeChecker<LinearMark> {
         LinearMark mark = scope.getVariables().get( nodeName );
 
         if ( mark != null ) {
-            System.out.println( "Identifier being visited in block " + scope.getBlockKind() );
             if ( scope.getBlockKind().isLoop() ) {
                 // @Linear variable cannot be safely used in loops
                 mark.markAsUsed();
