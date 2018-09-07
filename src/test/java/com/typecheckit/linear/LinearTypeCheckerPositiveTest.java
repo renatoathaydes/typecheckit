@@ -185,4 +185,38 @@ public class LinearTypeCheckerPositiveTest extends TestUtils {
         assertSuccessfulCompilationOfClass( compiledClass );
     }
 
+    @Test
+    public void canReassignLinearVariableToAnotherVariable() {
+        Optional<Class<Object>> compiledClass =
+                compileRunnableClassSnippet(
+                        "@Linear String x = \"a\";\n"
+                                + "@Linear String y = \"b\";\n"
+                                + "x = y; // creates an alias\n"
+                                + "System.out.println(x.toUpperCase()); // uses up both x and y \n" );
+
+        assertSuccessfulCompilationOfClass( compiledClass );
+
+        compiledClass = compileRunnableClassSnippet(
+                "@Linear String x = \"a\";\n"
+                        + "@Linear String y = \"b\";\n"
+                        + "x = y; // creates an alias\n"
+                        + "System.out.println(y.toUpperCase()); // uses up both x and y \n" );
+
+        assertSuccessfulCompilationOfClass( compiledClass );
+
+        compiledClass = compileRunnableClassSnippet(
+                "@Linear int a = 1;\n"
+                        + "@Linear int b = a;\n"
+                        + "@Linear int c = a;\n"
+                        + "@Linear int d = a;\n"
+                        + "@Linear int e = b;\n"
+                        + "@Linear int f = c;\n"
+                        + "@Linear int g = f;\n"
+                        + "@Linear int notAlias = 2;\n"
+                        + "System.out.println(g); // uses up all aliases \n"
+                        + "System.out.println(notAlias);" );
+
+        assertSuccessfulCompilationOfClass( compiledClass );
+    }
+
 }

@@ -1,10 +1,28 @@
 package com.typecheckit.linear;
 
+import com.sun.source.tree.VariableTree;
 import com.typecheckit.util.Mark;
 
 final class LinearMark extends Mark<LinearMark> {
 
-    boolean isUsedUp;
+    private final VariableTree node;
+    private boolean usedUp = false;
+
+    LinearMark( VariableTree node ) {
+        this.node = node;
+    }
+
+    void markAsUsed() {
+        this.usedUp = true;
+    }
+
+    boolean isUsedUp() {
+        return usedUp;
+    }
+
+    String name() {
+        return node.getName().toString();
+    }
 
     @Override
     protected LinearMark enterNewScope() {
@@ -14,14 +32,14 @@ final class LinearMark extends Mark<LinearMark> {
 
     @Override
     protected LinearMark copy() {
-        LinearMark linearMark = new LinearMark();
-        linearMark.isUsedUp = this.isUsedUp;
+        LinearMark linearMark = new LinearMark( node );
+        linearMark.usedUp = usedUp;
         return linearMark;
     }
 
     @Override
     public void merge( LinearMark mark ) {
-        this.isUsedUp |= mark.isUsedUp;
+        this.usedUp |= mark.usedUp;
     }
 
 }

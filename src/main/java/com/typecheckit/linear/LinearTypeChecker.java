@@ -6,12 +6,13 @@ import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.IdentifierTree;
 import com.sun.source.tree.ImportTree;
 import com.sun.source.tree.VariableTree;
-import com.sun.tools.javac.tree.JCTree;
+import com.sun.tools.javac.util.JCDiagnostic.DiagnosticPosition;
 import com.typecheckit.ScopeBasedTypeChecker;
 import com.typecheckit.annotation.Linear;
 import com.typecheckit.util.TypeCheckerUtils;
 import com.typecheckit.util.VariableScope.Scope;
 
+import javax.lang.model.element.Name;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -23,7 +24,6 @@ public final class LinearTypeChecker extends ScopeBasedTypeChecker<LinearMark> {
     private static final String LINEAR_PKG_STAR = Linear.class.getPackage().getName() + ".*";
 
     private final Set<String> linearAnnotationNames = new HashSet<>( 2 );
-    private ExpressionTree assigningVariable;
 
     public LinearTypeChecker() {
         linearAnnotationNames.add( LINEAR_CLASS_NAME );
@@ -47,26 +47,45 @@ public final class LinearTypeChecker extends ScopeBasedTypeChecker<LinearMark> {
 
     @Override
     public Void visitVariable( VariableTree node, TypeCheckerUtils typeCheckerUtils ) {
-        if ( isLinear( node, typeCheckerUtils ) ) {
-            currentScope().getVariables().put( node.getName().toString(), new LinearMark() );
+        boolean scanInitializer = true;
+        ExpressionTree initializer = node.getInitializer();
+        if ( initializer instanceof IdentifierTree ) {
+            copyMarkToAlias( node.getName(), ( IdentifierTree ) initializer );
+            scanInitializer = false; // no need to visit the initializer, already done what was needed
+        } else if ( isLinear( node, typeCheckerUtils ) ) {
+            currentScope().getVariables().put( node.getName().toString(), new LinearMark( node ) );
         }
-        return super.visitVariable( node, typeCheckerUtils );
+
+        scan( node.getModifiers(), typeCheckerUtils );
+        scan( node.getType(), typeCheckerUtils );
+        scan( node.getNameExpression(), typeCheckerUtils );
+        if ( scanInitializer ) {
+            scan( initializer, typeCheckerUtils );
+        }
+        return null;
     }
 
     @Override
     public Void visitAssignment( AssignmentTree node, TypeCheckerUtils typeCheckerUtils ) {
-        assigningVariable = node.getVariable();
-        super.visitAssignment( node, typeCheckerUtils );
-        assigningVariable = null;
+        // variable does not need to be scanned as we now know it's not being used, but assigned to
+        ExpressionTree variable = node.getVariable();
+        ExpressionTree expression = node.getExpression();
+        if ( variable instanceof IdentifierTree ) {
+            IdentifierTree idVar = ( IdentifierTree ) variable;
+            if ( expression instanceof IdentifierTree ) {
+                IdentifierTree idExpr = ( IdentifierTree ) expression;
+                copyMarkToAlias( idVar.getName(), idExpr );
+            } else {
+                scan( expression, typeCheckerUtils );
+            }
+        } else {
+            scan( expression, typeCheckerUtils );
+        }
         return null;
     }
 
     @Override
     public Void visitIdentifier( IdentifierTree node, TypeCheckerUtils typeCheckerUtils ) {
-        if ( node == assigningVariable ) {
-            // ignore identifier being assigned to
-            return super.visitIdentifier( node, typeCheckerUtils );
-        }
         String nodeName = node.getName().toString();
         Scope<LinearMark> scope = currentScope();
         LinearMark mark = scope.getVariables().get( nodeName );
@@ -75,21 +94,38 @@ public final class LinearTypeChecker extends ScopeBasedTypeChecker<LinearMark> {
             System.out.println( "Identifier being visited in block " + scope.getBlockKind() );
             if ( scope.getBlockKind().isLoop() ) {
                 // @Linear variable cannot be safely used in loops
-                mark.isUsedUp = true;
+                mark.markAsUsed();
             }
-            if ( mark.isUsedUp ) {
+            if ( mark.isUsedUp() ) {
                 CompilationUnitTree cu = typeCheckerUtils.getCompilationUnit();
-                long lineNumber = cu.getLineMap().getLineNumber(
-                        ( ( JCTree.JCIdent ) node ).getStartPosition() );
+                long lineNumber = ( node instanceof DiagnosticPosition )
+                        ? cu.getLineMap().getLineNumber( ( ( DiagnosticPosition ) node ).getStartPosition() )
+                        : -1;
                 String fileName = cu.getSourceFile().getName();
                 System.out.println( "ERROR at " + node.getName() + ":" + lineNumber );
                 typeCheckerUtils.getMessager().printMessage( ERROR,
-                        fileName + ":" + lineNumber + " Re-using @Linear variable " + node.getName() );
+                        fileName + ":" + lineNumber + " " + errorMessage( mark, node ) );
             } else {
-                mark.isUsedUp = true;
+                mark.markAsUsed();
             }
         }
         return super.visitIdentifier( node, typeCheckerUtils );
+    }
+
+    private void copyMarkToAlias( Name variable, IdentifierTree expression ) {
+        LinearMark mark = currentScope().getVariables().get( expression.getName().toString() );
+        if ( mark != null ) {
+            currentScope().getVariables().put( variable.toString(), mark );
+        }
+    }
+
+    private static String errorMessage( LinearMark mark, IdentifierTree node ) {
+        String aliasInfo = "";
+        if ( !mark.name().equals( node.getName().toString() ) ) {
+            aliasInfo = " (aliased as " + node.getName() + ")";
+        }
+
+        return "Re-using @Linear variable " + mark.name() + aliasInfo;
     }
 
 }

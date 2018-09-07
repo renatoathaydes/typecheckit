@@ -282,4 +282,58 @@ public class LinearTypeCheckerNegativeTest extends TestUtils {
         assertFalse( "Should not compile successfully", compiledClass.isPresent() );
         assertCompilationErrorContains( writer, "error: Runner.java:6 Re-using @Linear variable x" );
     }
+
+    @Test
+    public void cannotUseAliasToUsedLinearVariable() {
+        ByteArrayOutputStream writer = new ByteArrayOutputStream();
+
+        Optional<Class<Object>> compiledClass =
+                compileRunnableClassSnippet(
+                        "@Linear int x = 10;\n"
+                                + "@Linear int y = 20;\n"
+                                + "x = y; // alias\n"
+                                + "System.out.println(y); // used up x and y\n"
+                                + "System.out.println(x); // fail here",
+                        new PrintStream( writer, true ) );
+
+        assertFalse( "Should not compile successfully", compiledClass.isPresent() );
+        assertCompilationErrorContains( writer, "error: Runner.java:6 Re-using @Linear variable y (aliased as x)" );
+    }
+
+    @Test
+    public void cannotUseAliasedAndUsedLinearVariable() {
+        ByteArrayOutputStream writer = new ByteArrayOutputStream();
+
+        Optional<Class<Object>> compiledClass =
+                compileRunnableClassSnippet(
+                        "@Linear int x = 10;\n"
+                                + "@Linear int y = 20;\n"
+                                + "x = y; // alias\n"
+                                + "System.out.println(y); // used up x and y\n"
+                                + "System.out.println(y); // fail here",
+                        new PrintStream( writer, true ) );
+
+        assertFalse( "Should not compile successfully", compiledClass.isPresent() );
+        assertCompilationErrorContains( writer, "error: Runner.java:6 Re-using @Linear variable y" );
+    }
+
+    @Test
+    public void cannotReuseAliasedLinearVariable() {
+        ByteArrayOutputStream writer = new ByteArrayOutputStream();
+
+        Optional<Class<Object>> compiledClass = compileRunnableClassSnippet(
+                "@Linear int a = 1;\n"
+                        + "int b = a;\n"
+                        + "int c = a;\n"
+                        + "int d = a;\n"
+                        + "int e = b;\n"
+                        + "int f = c;\n"
+                        + "int g = f;\n"
+                        + "System.out.println(g); // uses up all aliases \n"
+                        + "System.out.println(f); // fail here",
+                new PrintStream( writer, true ) );
+
+        assertFalse( "Should not compile successfully", compiledClass.isPresent() );
+        assertCompilationErrorContains( writer, "error: Runner.java:10 Re-using @Linear variable a (aliased as f)" );
+    }
 }
