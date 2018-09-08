@@ -20,7 +20,7 @@ public class LinearTypeCheckerPositiveTest extends TestUtils {
                 "@Linear String s = \"hello @Linear\";\n"
                         + "System.out.println(s);" );
 
-        assertSuccessfulCompilationOfClass( compiledClass );
+        assertSuccessfulCompilationOfRunnableClass( compiledClass );
     }
 
     @Test
@@ -30,7 +30,7 @@ public class LinearTypeCheckerPositiveTest extends TestUtils {
                         + "x = 10;\n"
                         + "System.out.println(x);" );
 
-        assertSuccessfulCompilationOfClass( compiledClass );
+        assertSuccessfulCompilationOfRunnableClass( compiledClass );
     }
 
     @Test
@@ -52,7 +52,7 @@ public class LinearTypeCheckerPositiveTest extends TestUtils {
                                 + "    hello.toLowerCase();\n"
                                 + "}" );
 
-        assertSuccessfulCompilationOfClass( compiledClass );
+        assertSuccessfulCompilationOfRunnableClass( compiledClass );
     }
 
     @Test
@@ -66,7 +66,7 @@ public class LinearTypeCheckerPositiveTest extends TestUtils {
                                 + "    hello.toUpperCase();\n"
                                 + "}" );
 
-        assertSuccessfulCompilationOfClass( compiledClass );
+        assertSuccessfulCompilationOfRunnableClass( compiledClass );
     }
 
     @Test
@@ -84,7 +84,7 @@ public class LinearTypeCheckerPositiveTest extends TestUtils {
                                 + "    hello.toString();\n"
                                 + "}" );
 
-        assertSuccessfulCompilationOfClass( compiledClass );
+        assertSuccessfulCompilationOfRunnableClass( compiledClass );
     }
 
     @Test
@@ -100,7 +100,7 @@ public class LinearTypeCheckerPositiveTest extends TestUtils {
                                 + "    hello.toUpperCase();\n"
                                 + "}" );
 
-        assertSuccessfulCompilationOfClass( compiledClass );
+        assertSuccessfulCompilationOfRunnableClass( compiledClass );
     }
 
     @Test
@@ -119,7 +119,7 @@ public class LinearTypeCheckerPositiveTest extends TestUtils {
                                 + "    if (t < 200L) hello.toUpperCase();\n"
                                 + "" );
 
-        assertSuccessfulCompilationOfClass( compiledClass );
+        assertSuccessfulCompilationOfRunnableClass( compiledClass );
     }
 
     @Test
@@ -135,7 +135,7 @@ public class LinearTypeCheckerPositiveTest extends TestUtils {
                                 + "  hello.toLowerCase();\n"
                                 + "}" );
 
-        assertSuccessfulCompilationOfClass( compiledClass );
+        assertSuccessfulCompilationOfRunnableClass( compiledClass );
     }
 
     @Test
@@ -152,7 +152,7 @@ public class LinearTypeCheckerPositiveTest extends TestUtils {
                                 + "}\n"
                                 + "System.out.println(x);" );
 
-        assertSuccessfulCompilationOfClass( compiledClass );
+        assertSuccessfulCompilationOfRunnableClass( compiledClass );
     }
 
     @Test
@@ -167,7 +167,7 @@ public class LinearTypeCheckerPositiveTest extends TestUtils {
                                 + ":   30;\n"
                                 + "System.out.println(x);" );
 
-        assertSuccessfulCompilationOfClass( compiledClass );
+        assertSuccessfulCompilationOfRunnableClass( compiledClass );
     }
 
     @Test
@@ -182,7 +182,7 @@ public class LinearTypeCheckerPositiveTest extends TestUtils {
                                 + "  default: x.hashCode();\n"
                                 + "}" );
 
-        assertSuccessfulCompilationOfClass( compiledClass );
+        assertSuccessfulCompilationOfRunnableClass( compiledClass );
     }
 
     @Test
@@ -194,7 +194,7 @@ public class LinearTypeCheckerPositiveTest extends TestUtils {
                                 + "x = y; // creates an alias\n"
                                 + "System.out.println(x.toUpperCase()); // uses up both x and y \n" );
 
-        assertSuccessfulCompilationOfClass( compiledClass );
+        assertSuccessfulCompilationOfRunnableClass( compiledClass );
 
         compiledClass = compileRunnableClassSnippet(
                 "@Linear String x = \"a\";\n"
@@ -202,7 +202,7 @@ public class LinearTypeCheckerPositiveTest extends TestUtils {
                         + "x = y; // creates an alias\n"
                         + "System.out.println(y.toUpperCase()); // uses up both x and y \n" );
 
-        assertSuccessfulCompilationOfClass( compiledClass );
+        assertSuccessfulCompilationOfRunnableClass( compiledClass );
 
         compiledClass = compileRunnableClassSnippet(
                 "@Linear int a = 1;\n"
@@ -215,6 +215,20 @@ public class LinearTypeCheckerPositiveTest extends TestUtils {
                         + "@Linear int notAlias = 2;\n"
                         + "System.out.println(g); // uses up all aliases \n"
                         + "System.out.println(notAlias);" );
+
+        assertSuccessfulCompilationOfRunnableClass( compiledClass );
+    }
+
+    @Test
+    public void canAssignLinearMethodReturnToLinearVariable() {
+        Optional<Class<Object>> compiledClass = compileClass(
+                "@Linear String getSomething() {\n"
+                        + "  return new String(\"hello\");\n"
+                        + "}\n"
+                        + "void run() {\n"
+                        + "  @Linear String s = getSomething();\n"
+                        + "  System.out.println(s);"
+                        + "}\n" );
 
         assertSuccessfulCompilationOfClass( compiledClass );
     }

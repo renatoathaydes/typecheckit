@@ -1,12 +1,16 @@
 package com.typecheckit.util;
 
 import com.sun.source.tree.CompilationUnitTree;
+import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
+import com.sun.source.util.TreePath;
 import com.sun.source.util.Trees;
 import com.sun.tools.javac.util.Log;
 
 import javax.annotation.processing.Messager;
+import javax.lang.model.element.Element;
 import java.util.List;
+import java.util.Optional;
 
 import static java.util.stream.Collectors.toList;
 
@@ -45,6 +49,10 @@ public class TypeCheckerUtils {
         return var.getModifiers().getAnnotations().stream()
                 .map( a -> a.getAnnotationType().toString() )
                 .collect( toList() );
+    }
+
+    public Optional<Element> getTreeElement( Tree tree ) {
+        return Optional.ofNullable( trees.getElement( TreePath.getPath( compilationUnit, tree ) ) );
     }
 
 }

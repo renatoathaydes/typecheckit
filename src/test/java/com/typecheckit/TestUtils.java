@@ -10,6 +10,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.joining;
@@ -47,17 +48,32 @@ public class TestUtils {
                                                                 String pkg,
                                                                 String className,
                                                                 PrintStream writer ) {
+        return compileClass( "public void run() {\n"
+                + codeSnippet
+                + "\n}", pkg, className, writer, Runnable.class );
+    }
+
+    public Optional<Class<Object>> compileClass( String classBody ) {
+        return compileClass( classBody, "", "MyClass", System.out );
+    }
+
+    public Optional<Class<Object>> compileClass( String classBody,
+                                                 String pkg,
+                                                 String className,
+                                                 PrintStream writer,
+                                                 Class<?>... interfaces ) {
         String qualifiedClassName = pkg.isEmpty() ? className : pkg + "." + className;
-        String code = String.format( "%s %s"
-                        + "public class %s implements Runnable {"
-                        + "  public void run() {\n"
-                        + "    %s\n"
-                        + "  }"
+        String code = String.format( "%s %s "
+                        + "public class %s%s {"
+                        + "%s\n"
                         + "}",
                 pkg.isEmpty() ? "" : "package " + pkg + ";",
                 imports.stream().map( i -> String.format( "import %s;", i ) ).collect( joining() ),
                 className,
-                codeSnippet );
+                interfaces.length == 0 ? "" : " implements " + Stream.of( interfaces )
+                        .map( Class::getName )
+                        .collect( joining( ", " ) ),
+                classBody );
 
         return compiler.compile( qualifiedClassName, code, writer );
     }
@@ -71,6 +87,11 @@ public class TestUtils {
     }
 
     public void assertSuccessfulCompilationOfClass(
+            @SuppressWarnings( "OptionalUsedAsFieldOrParameterType" ) Optional<Class<Object>> compiledClass ) {
+        assertSuccessfulCompilationOfClass( compiledClass, "MyClass", Object.class );
+    }
+
+    public void assertSuccessfulCompilationOfRunnableClass(
             @SuppressWarnings( "OptionalUsedAsFieldOrParameterType" ) Optional<Class<Object>> compiledClass ) {
         assertSuccessfulCompilationOfClass( compiledClass, "Runner", Runnable.class );
     }

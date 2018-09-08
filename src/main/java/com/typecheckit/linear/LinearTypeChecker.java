@@ -5,7 +5,10 @@ import com.sun.source.tree.CompilationUnitTree;
 import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.IdentifierTree;
 import com.sun.source.tree.ImportTree;
+import com.sun.source.tree.MethodInvocationTree;
+import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
+import com.sun.tools.javac.code.Symbol;
 import com.sun.tools.javac.util.JCDiagnostic.DiagnosticPosition;
 import com.typecheckit.ScopeBasedTypeChecker;
 import com.typecheckit.annotation.Linear;
@@ -59,6 +62,15 @@ public final class LinearTypeChecker extends ScopeBasedTypeChecker<LinearMark> {
             }
             scanInitializer = false; // no need to visit the initializer, already done what was needed
         } else if ( isLinear( node, typeCheckerUtils ) ) {
+            if ( initializer instanceof MethodInvocationTree ) {
+                boolean isLinearReturnType = typeCheckerUtils.getTreeElement( initializer ).map( element ->
+                        ( ( Symbol.MethodSymbol ) element ).getReturnType().getAnnotationMirrors()
+                                .stream().anyMatch( it -> it.type.toString().equals( LINEAR_CLASS_NAME ) )
+                ).orElse( false );
+                if ( !isLinearReturnType ) {
+                    reportError( typeCheckerUtils, node, assignmentError( node, ( MethodInvocationTree ) initializer ) );
+                }
+            }
             currentScope().getVariables().put( node.getName().toString(), new LinearMark( node ) );
         }
 
@@ -69,10 +81,6 @@ public final class LinearTypeChecker extends ScopeBasedTypeChecker<LinearMark> {
             scan( initializer, typeCheckerUtils );
         }
         return null;
-    }
-
-    private static String assignmentError( VariableTree node, IdentifierTree initializer ) {
-        return "Cannot assign non-linear variable " + initializer.getName() + " to linear variable " + node.getName();
     }
 
     @Override
@@ -123,13 +131,12 @@ public final class LinearTypeChecker extends ScopeBasedTypeChecker<LinearMark> {
         return mark != null;
     }
 
-    private static void reportError( TypeCheckerUtils typeCheckerUtils, IdentifierTree node, String error ) {
+    private static void reportError( TypeCheckerUtils typeCheckerUtils, Tree node, String error ) {
         CompilationUnitTree cu = typeCheckerUtils.getCompilationUnit();
         long lineNumber = ( node instanceof DiagnosticPosition )
                 ? cu.getLineMap().getLineNumber( ( ( DiagnosticPosition ) node ).getStartPosition() )
                 : -1;
         String fileName = cu.getSourceFile().getName();
-        System.out.println( "ERROR at " + node.getName() + ":" + lineNumber );
         typeCheckerUtils.getMessager().printMessage( ERROR,
                 fileName + ":" + lineNumber + " " + error );
     }
@@ -141,6 +148,14 @@ public final class LinearTypeChecker extends ScopeBasedTypeChecker<LinearMark> {
         }
 
         return "Re-using @Linear variable " + mark.name() + aliasInfo;
+    }
+
+    private static String assignmentError( VariableTree node, IdentifierTree initializer ) {
+        return "Cannot assign non-linear variable " + initializer.getName() + " to linear variable " + node.getName();
+    }
+
+    private static String assignmentError( VariableTree node, MethodInvocationTree initializer ) {
+        return "Cannot assign non-linear return type of " + initializer + " to linear variable " + node.getName();
     }
 
 }
