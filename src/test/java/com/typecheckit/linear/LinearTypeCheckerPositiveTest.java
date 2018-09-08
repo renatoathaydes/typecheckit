@@ -233,4 +233,16 @@ public class LinearTypeCheckerPositiveTest extends TestUtils {
         assertSuccessfulCompilationOfClass( compiledClass );
     }
 
+    @Test
+    public void canAssignAnyPrimitiveMethodReturnTypeToLinearVariable() {
+        Optional<Class<Object>> compiledClass = compileRunnableClassSnippet(
+                "String s = \"hello\";\n"
+                        + "@Linear int h = s.hashCode();\n"
+                        + "@Linear int i = s.length();\n"
+                        + "@Linear boolean b = s.isEmpty();\n"
+                        + "System.out.println(\"\" + b + i + h);" );
+
+        assertSuccessfulCompilationOfRunnableClass( compiledClass );
+    }
+
 }

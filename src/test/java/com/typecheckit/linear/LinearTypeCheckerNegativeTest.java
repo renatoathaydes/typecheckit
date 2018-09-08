@@ -373,4 +373,18 @@ public class LinearTypeCheckerNegativeTest extends TestUtils {
         assertCompilationErrorContains( writer, "error: Runner.java:3 Cannot assign non-linear return type of " +
                 "s.toUpperCase().toLowerCase().toString() to linear variable t" );
     }
+
+    @Test
+    public void cannotAssignArrayMethodReturnToLinearVariable() {
+        ByteArrayOutputStream writer = new ByteArrayOutputStream();
+
+        Optional<Class<Object>> compiledClass = compileRunnableClassSnippet(
+                "@Linear String s = \"abc\";\n"
+                        + "@Linear char[] c = s.toCharArray();",
+                new PrintStream( writer, true ) );
+
+        assertFalse( "Should not compile successfully", compiledClass.isPresent() );
+        assertCompilationErrorContains( writer, "error: Runner.java:3 Cannot assign non-linear return type of " +
+                "s.toCharArray() to linear variable c" );
+    }
 }
