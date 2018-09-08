@@ -18,7 +18,7 @@ public class LinearTypeCheckerPositiveTest extends TestUtils {
     public void canAssignLiteralToLinearVariable() {
         Optional<Class<Object>> compiledClass = compileRunnableClassSnippet(
                 "@Linear String s = \"hello @Linear\";\n"
-                        + "System.out.println(s);" );
+                        + "System.out.println(s.toString());" );
 
         assertSuccessfulCompilationOfRunnableClass( compiledClass );
     }
@@ -227,7 +227,7 @@ public class LinearTypeCheckerPositiveTest extends TestUtils {
                         + "}\n"
                         + "void run() {\n"
                         + "  @Linear String s = getSomething();\n"
-                        + "  System.out.println(s);"
+                        + "  System.out.println(s.toString());"
                         + "}\n" );
 
         assertSuccessfulCompilationOfClass( compiledClass );
@@ -243,6 +243,70 @@ public class LinearTypeCheckerPositiveTest extends TestUtils {
                         + "System.out.println(\"\" + b + i + h);" );
 
         assertSuccessfulCompilationOfRunnableClass( compiledClass );
+    }
+
+    @Test
+    public void canPassLinearVariableToStaticMethodTakingLinearVariable() {
+        Optional<Class<Object>> compiledClass = compileClass(
+                "\nstatic class Helper {\n"
+                        +"  static void hello(String name, @Linear String surname) {\n"
+                        + "   System.out.println(name + \" \" + surname);\n"
+                        + "  }\n"
+                        + "}\n"
+                        + "void run() {\n"
+                        + "  String name = \"Joe\";\n"
+                        + "  @Linear String sur = \"Doe\";\n"
+                        + "  Helper.hello(name, sur);\n"
+                        + "}" );
+
+        assertSuccessfulCompilationOfClass( compiledClass );
+    }
+
+@Test
+    public void canPassLinearVariableToStaticMethodTakingPrimitiveVariable() {
+        Optional<Class<Object>> compiledClass = compileClass(
+                "\nstatic class Helper {\n"
+                        +"  static void hello(String name, int i) {\n"
+                        + "   System.out.println(name + \" \" + i);\n"
+                        + "  }\n"
+                        + "}\n"
+                        + "void run() {\n"
+                        + "  String name = \"Joe\";\n"
+                        + "  @Linear int i = 2;\n"
+                        + "  Helper.hello(name, i);\n"
+                        + "}" );
+
+        assertSuccessfulCompilationOfClass( compiledClass );
+    }
+
+    @Test
+    public void canPassLinearVariableToInstanceMethodTakingLinearVariable() {
+        Optional<Class<Object>> compiledClass = compileClass(
+                "\nvoid hello(String name, @Linear String surname) {\n"
+                        + "  System.out.println(name + \" \" + surname);\n"
+                        + "}\n"
+                        + "void run() {\n"
+                        + "  String name = \"Joe\";\n"
+                        + "  @Linear String sur = \"Doe\";\n"
+                        + "  hello(name, sur);\n"
+                        + "}" );
+
+        assertSuccessfulCompilationOfClass( compiledClass );
+    }
+
+    @Test
+    public void canPassLinearVariableToInstanceMethodTakingPrimitiveVariable() {
+        Optional<Class<Object>> compiledClass = compileClass(
+                "\nvoid hello(String name, int i) {\n"
+                        + "  System.out.println(name + \" \" + i);\n"
+                        + "}\n"
+                        + "void run() {\n"
+                        + "  String name = \"Joe\";\n"
+                        + "  @Linear int i = 1;\n"
+                        + "  hello(name, i);\n"
+                        + "}" );
+
+        assertSuccessfulCompilationOfClass( compiledClass );
     }
 
 }

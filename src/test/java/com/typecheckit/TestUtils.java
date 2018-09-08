@@ -74,7 +74,7 @@ public class TestUtils {
                         .map( Class::getName )
                         .collect( joining( ", " ) ),
                 classBody );
-
+        System.out.println( "-----\n" + code + "\n------" );
         return compiler.compile( qualifiedClassName, code, writer );
     }
 

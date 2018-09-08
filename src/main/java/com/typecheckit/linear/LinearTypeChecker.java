@@ -8,7 +8,9 @@ import com.sun.source.tree.ImportTree;
 import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
+import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.util.JCDiagnostic.DiagnosticPosition;
+import com.sun.tools.javac.util.List;
 import com.typecheckit.ScopeBasedTypeChecker;
 import com.typecheckit.annotation.Linear;
 import com.typecheckit.util.TypeCheckerUtils;
@@ -128,6 +130,22 @@ public final class LinearTypeChecker extends ScopeBasedTypeChecker<LinearMark> {
         return super.visitIdentifier( node, typeCheckerUtils );
     }
 
+    @Override
+    public Void visitMethodInvocation( MethodInvocationTree node, TypeCheckerUtils typeCheckerUtils ) {
+        List<Type> parameterTypes = typeCheckerUtils.getMethodParameters( node );
+        java.util.List<? extends ExpressionTree> arguments = node.getArguments();
+        for ( int i = 0, max = Math.min( parameterTypes.size(), arguments.size() ); i < max; i++ ) {
+            ExpressionTree arg = arguments.get( i );
+            if ( currentScope().getVariables().containsKey( arg.toString() ) ) {
+                // the argument is a @Linear variable, check if the method accepts @Linear variables
+                if ( !isLinear( parameterTypes.get( i ) ) ) {
+                    reportError( typeCheckerUtils, node, methodCallError( node, arg, i ) );
+                }
+            }
+        }
+        return super.visitMethodInvocation( node, typeCheckerUtils );
+    }
+
     @SuppressWarnings( "ConstantConditions" )
     private boolean hasLinearReturnType( TypeCheckerUtils typeCheckerUtils, ExpressionTree initializer ) {
         // do not report error if we simply can't find the element because
@@ -180,6 +198,11 @@ public final class LinearTypeChecker extends ScopeBasedTypeChecker<LinearMark> {
 
     private static String assignmentError( VariableTree node, MethodInvocationTree initializer ) {
         return "Cannot assign non-linear return type of " + initializer + " to linear variable " + node.getName();
+    }
+
+    private String methodCallError( MethodInvocationTree node, ExpressionTree arg, int argIndex ) {
+        return "Cannot use linear variable " + arg + " as argument of method " +
+                node.getMethodSelect() + "() at index " + argIndex + " (parameter is not linear)";
     }
 
 }

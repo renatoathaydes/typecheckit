@@ -1,10 +1,13 @@
 package com.typecheckit.util;
 
 import com.sun.source.tree.CompilationUnitTree;
+import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
 import com.sun.source.util.TreePath;
 import com.sun.source.util.Trees;
+import com.sun.tools.javac.code.Type;
+import com.sun.tools.javac.tree.JCTree;
 import com.sun.tools.javac.util.Log;
 
 import javax.annotation.processing.Messager;
@@ -55,4 +58,7 @@ public class TypeCheckerUtils {
         return Optional.ofNullable( trees.getElement( TreePath.getPath( compilationUnit, tree ) ) );
     }
 
+    public com.sun.tools.javac.util.List<Type> getMethodParameters( MethodInvocationTree node ) {
+        return ( ( JCTree ) node.getMethodSelect() ).type.getParameterTypes();
+    }
 }

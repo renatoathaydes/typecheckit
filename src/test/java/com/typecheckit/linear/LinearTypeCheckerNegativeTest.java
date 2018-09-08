@@ -387,4 +387,40 @@ public class LinearTypeCheckerNegativeTest extends TestUtils {
         assertCompilationErrorContains( writer, "error: Runner.java:3 Cannot assign non-linear return type of " +
                 "s.toCharArray() to linear variable c" );
     }
+
+    @Test
+    public void cannotPassLinearVariableToStaticMethodNotTakingLinearVariable() {
+        addImports( "java.util.List", "static java.util.Arrays.asList" );
+        ByteArrayOutputStream writer = new ByteArrayOutputStream();
+
+        Optional<Class<Object>> compiledClass = compileRunnableClassSnippet(
+                "@Linear String s = \"abc\";\n"
+                        + "List<String> l = asList(s);",
+                new PrintStream( writer, true ) );
+
+        assertFalse( "Should not compile successfully", compiledClass.isPresent() );
+        assertCompilationErrorContains( writer, "error: Runner.java:3 Cannot use linear variable s " +
+                "as argument of method asList() at index 0 (parameter is not linear)" );
+    }
+
+    @Test
+    public void cannotPassLinearVariableToInstanceMethodNotTakingLinearVariable() {
+        ByteArrayOutputStream writer = new ByteArrayOutputStream();
+
+        Optional<Class<Object>> compiledClass = compileClass(
+                "\nvoid hello(String name, String surname) {\n"
+                        + "}\n"
+                        + "void run() {\n"
+                        + "  String name = \"Joe\";\n"
+                        + "  @Linear String sur = \"Doe\";\n"
+                        + "  hello(name, sur);\n"
+                        + "}",
+                "com.my.pk", "TestClass",
+                new PrintStream( writer, true ) );
+
+        assertFalse( "Should not compile successfully", compiledClass.isPresent() );
+        assertCompilationErrorContains( writer, "error: TestClass.java:7 Cannot use linear variable sur " +
+                "as argument of method hello() at index 1 (parameter is not linear)" );
+    }
+
 }
