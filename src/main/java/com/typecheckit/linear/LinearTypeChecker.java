@@ -50,7 +50,13 @@ public final class LinearTypeChecker extends ScopeBasedTypeChecker<LinearMark> {
         boolean scanInitializer = true;
         ExpressionTree initializer = node.getInitializer();
         if ( initializer instanceof IdentifierTree ) {
-            copyMarkToAlias( node.getName(), ( IdentifierTree ) initializer );
+            IdentifierTree idInit = ( IdentifierTree ) initializer;
+            boolean copied = copyMarkToAlias( node.getName(), idInit );
+            if ( !copied ) { // then the initializer did not have a mark
+                if ( isLinear( node, typeCheckerUtils ) ) { // then the assignment cannot be allowed
+                    reportError( typeCheckerUtils, idInit, assignmentError( node, idInit ) );
+                }
+            }
             scanInitializer = false; // no need to visit the initializer, already done what was needed
         } else if ( isLinear( node, typeCheckerUtils ) ) {
             currentScope().getVariables().put( node.getName().toString(), new LinearMark( node ) );
@@ -63,6 +69,10 @@ public final class LinearTypeChecker extends ScopeBasedTypeChecker<LinearMark> {
             scan( initializer, typeCheckerUtils );
         }
         return null;
+    }
+
+    private static String assignmentError( VariableTree node, IdentifierTree initializer ) {
+        return "Cannot assign non-linear variable " + initializer.getName() + " to linear variable " + node.getName();
     }
 
     @Override
@@ -97,14 +107,7 @@ public final class LinearTypeChecker extends ScopeBasedTypeChecker<LinearMark> {
                 mark.markAsUsed();
             }
             if ( mark.isUsedUp() ) {
-                CompilationUnitTree cu = typeCheckerUtils.getCompilationUnit();
-                long lineNumber = ( node instanceof DiagnosticPosition )
-                        ? cu.getLineMap().getLineNumber( ( ( DiagnosticPosition ) node ).getStartPosition() )
-                        : -1;
-                String fileName = cu.getSourceFile().getName();
-                System.out.println( "ERROR at " + node.getName() + ":" + lineNumber );
-                typeCheckerUtils.getMessager().printMessage( ERROR,
-                        fileName + ":" + lineNumber + " " + errorMessage( mark, node ) );
+                reportError( typeCheckerUtils, node, reusingError( mark, node ) );
             } else {
                 mark.markAsUsed();
             }
@@ -112,14 +115,26 @@ public final class LinearTypeChecker extends ScopeBasedTypeChecker<LinearMark> {
         return super.visitIdentifier( node, typeCheckerUtils );
     }
 
-    private void copyMarkToAlias( Name variable, IdentifierTree expression ) {
+    private boolean copyMarkToAlias( Name variable, IdentifierTree expression ) {
         LinearMark mark = currentScope().getVariables().get( expression.getName().toString() );
         if ( mark != null ) {
             currentScope().getVariables().put( variable.toString(), mark );
         }
+        return mark != null;
     }
 
-    private static String errorMessage( LinearMark mark, IdentifierTree node ) {
+    private static void reportError( TypeCheckerUtils typeCheckerUtils, IdentifierTree node, String error ) {
+        CompilationUnitTree cu = typeCheckerUtils.getCompilationUnit();
+        long lineNumber = ( node instanceof DiagnosticPosition )
+                ? cu.getLineMap().getLineNumber( ( ( DiagnosticPosition ) node ).getStartPosition() )
+                : -1;
+        String fileName = cu.getSourceFile().getName();
+        System.out.println( "ERROR at " + node.getName() + ":" + lineNumber );
+        typeCheckerUtils.getMessager().printMessage( ERROR,
+                fileName + ":" + lineNumber + " " + error );
+    }
+
+    private static String reusingError( LinearMark mark, IdentifierTree node ) {
         String aliasInfo = "";
         if ( !mark.name().equals( node.getName().toString() ) ) {
             aliasInfo = " (aliased as " + node.getName() + ")";

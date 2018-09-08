@@ -336,4 +336,18 @@ public class LinearTypeCheckerNegativeTest extends TestUtils {
         assertFalse( "Should not compile successfully", compiledClass.isPresent() );
         assertCompilationErrorContains( writer, "error: Runner.java:10 Re-using @Linear variable a (aliased as f)" );
     }
+
+    @Test
+    public void cannotUseAssignNonLinearToLinearVariable() {
+        ByteArrayOutputStream writer = new ByteArrayOutputStream();
+
+        Optional<Class<Object>> compiledClass =
+                compileRunnableClassSnippet(
+                        "int x = 10;\n"
+                                + "@Linear int y = x;\n",
+                        new PrintStream( writer, true ) );
+
+        assertFalse( "Should not compile successfully", compiledClass.isPresent() );
+        assertCompilationErrorContains( writer, "error: Runner.java:3 Cannot assign non-linear variable x to linear variable y" );
+    }
 }
