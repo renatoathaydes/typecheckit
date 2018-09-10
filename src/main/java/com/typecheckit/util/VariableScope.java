@@ -1,9 +1,11 @@
 package com.typecheckit.util;
 
+import com.sun.source.tree.MethodTree;
 import com.typecheckit.BlockKind;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Stack;
 
 /**
@@ -16,7 +18,7 @@ public final class VariableScope<M extends Mark<M>> {
     private final Stack<Scope<M>> scopes = new Stack<>();
 
     public VariableScope() {
-        scopes.push( new Scope<>( BlockKind.ROOT, "<root>", new HashMap<>( 6 ) ) );
+        scopes.push( new Scope<>( BlockKind.ROOT, "<root>", new HashMap<>( 6 ), null ) );
     }
 
     public int size() {
@@ -27,12 +29,20 @@ public final class VariableScope<M extends Mark<M>> {
         enterScope( blockKind, "<>" );
     }
 
+    public void enterScope( MethodTree methodTree ) {
+        enterScope( BlockKind.METHOD, methodTree.getName(), methodTree );
+    }
+
     public void enterScope( BlockKind blockKind, CharSequence name ) {
+        enterScope( blockKind, name, null );
+    }
+
+    private void enterScope( BlockKind blockKind, CharSequence name, MethodTree methodTree ) {
         Map<String, M> variables = new HashMap<>( 6 );
         for ( Map.Entry<String, M> entry : currentScope().getVariables().entrySet() ) {
             variables.put( entry.getKey(), entry.getValue().enterNewScope() );
         }
-        scopes.push( new Scope<>( blockKind, name, variables ) );
+        scopes.push( new Scope<>( blockKind, name, variables, methodTree ) );
     }
 
     public void duplicateScope() {
@@ -41,7 +51,9 @@ public final class VariableScope<M extends Mark<M>> {
         for ( Map.Entry<String, M> entry : scope.getVariables().entrySet() ) {
             variables.put( entry.getKey(), entry.getValue().copy() );
         }
-        scopes.push( new Scope<>( scope.getBlockKind(), scope.getName() + "(duplicate)", variables ) );
+        scopes.push( new Scope<M>( scope.getBlockKind(),
+                scope.getName() + "(duplicate)",
+                variables, scope.getMethodTree().orElse( null ) ) );
     }
 
     public Scope<M> exitScope() {
@@ -78,11 +90,13 @@ public final class VariableScope<M extends Mark<M>> {
         private final BlockKind blockKind;
         private final CharSequence name;
         private final Map<String, M> variables;
+        private final MethodTree methodTree;
 
-        public Scope( BlockKind blockKind, CharSequence name, Map<String, M> variables ) {
+        public Scope( BlockKind blockKind, CharSequence name, Map<String, M> variables, MethodTree methodTree ) {
             this.blockKind = blockKind;
             this.name = name;
             this.variables = variables;
+            this.methodTree = methodTree;
         }
 
         public BlockKind getBlockKind() {
@@ -97,12 +111,17 @@ public final class VariableScope<M extends Mark<M>> {
             return variables;
         }
 
+        public Optional<MethodTree> getMethodTree() {
+            return Optional.ofNullable( methodTree );
+        }
+
         @Override
         public String toString() {
             return "Scope{" +
                     "blockKind='" + blockKind.name() + '\'' +
                     ", name='" + name + '\'' +
                     ", variables=" + variables +
+                    ", methodTree=" + methodTree +
                     '}';
         }
     }

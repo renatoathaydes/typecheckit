@@ -26,7 +26,7 @@ public abstract class ScopeBasedTypeChecker<M extends Mark<M>> extends DebugType
     @Override
     public void stop() {
         if ( scopes.size() != 1 ) {
-            System.out.println( scopes );
+            System.err.println( scopes );
             throw new IllegalStateException( "Finished visit to LinearTypeChecker with unexpected number of scopes " +
                     "for variables: expected 1, but was " + scopes.size() );
         }
@@ -63,7 +63,7 @@ public abstract class ScopeBasedTypeChecker<M extends Mark<M>> extends DebugType
 
     @Override
     public Void visitMethod( MethodTree node, TypeCheckerUtils typeCheckerUtils ) {
-        scopes.enterScope( BlockKind.METHOD, node.getName() );
+        scopes.enterScope( node );
         super.visitMethod( node, typeCheckerUtils );
         scopes.exitScope();
         return null;
