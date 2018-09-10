@@ -34,7 +34,7 @@ public final class VariableScope<M extends Mark<M>> {
     }
 
     public void enterScope( BlockKind blockKind, CharSequence name ) {
-        enterScope( blockKind, name, null );
+        enterScope( blockKind, name, currentMethod() );
     }
 
     private void enterScope( BlockKind blockKind, CharSequence name, MethodTree methodTree ) {
@@ -77,6 +77,14 @@ public final class VariableScope<M extends Mark<M>> {
 
     public Scope<M> currentScope() {
         return scopes.peek();
+    }
+
+    private MethodTree currentMethod() {
+        MethodTree result = null;
+        for (Scope<M> scope : scopes) {
+            result = scope.methodTree;
+        }
+        return result;
     }
 
     @Override

@@ -423,4 +423,77 @@ public class LinearTypeCheckerNegativeTest extends TestUtils {
                 "as argument of method hello() at index 1 (parameter is not linear)" );
     }
 
+    @Test
+    public void methodCannotReturnValueThatIsNotLinear() {
+        ByteArrayOutputStream writer = new ByteArrayOutputStream();
+
+        Optional<Class<Object>> compiledClass = compileClass(
+                "\nstatic final String HELLO = \"hello\";\n"
+                        + "@Linear String hello() {\n"
+                        + "  return HELLO;\n"
+                        + "}",
+                "com.my.pk", "TestClass",
+                new PrintStream( writer, true ) );
+
+        assertFalse( "Should not compile successfully", compiledClass.isPresent() );
+        assertCompilationErrorContains( writer, "error: TestClass.java:4 Cannot return non-linear value " +
+                "HELLO in linear method hello()" );
+
+        compiledClass = compileClass(
+                "\n@Linear String hello() {\n"
+                        + "  String h = \"hi\";\n"
+                        + "  return h;\n"
+                        + "}",
+                "com.my.pk", "TestClass",
+                new PrintStream( writer, true ) );
+
+        assertFalse( "Should not compile successfully", compiledClass.isPresent() );
+        assertCompilationErrorContains( writer, "error: TestClass.java:4 Cannot return non-linear value " +
+                "h in linear method hello()" );
+
+        compiledClass = compileClass(
+                "\nString nonLinear() { return \"non-linear\"; }\n"
+                        + "@Linear String hello() {\n"
+                        + "  return nonLinear();\n"
+                        + "}",
+                "com.my.pk", "TestClass",
+                new PrintStream( writer, true ) );
+
+        assertFalse( "Should not compile successfully", compiledClass.isPresent() );
+        assertCompilationErrorContains( writer, "error: TestClass.java:4 Cannot return non-linear value " +
+                "nonLinear() in linear method hello()" );
+
+        compiledClass = compileClass(
+                "\nString nonLinear() { return \"non-linear\"; }\n"
+                        + "@Linear String hello() {\n"
+                        + "  return nonLinear().toString();\n"
+                        + "}",
+                "com.my.pk", "TestClass",
+                new PrintStream( writer, true ) );
+
+        assertFalse( "Should not compile successfully", compiledClass.isPresent() );
+        assertCompilationErrorContains( writer, "error: TestClass.java:4 Cannot return non-linear value " +
+                "nonLinear().toString() in linear method hello()" );
+    }
+
+    @Test
+    public void methodCannotReturnValueThatIsNotLinearFromEvenOneBranch() {
+        ByteArrayOutputStream writer = new ByteArrayOutputStream();
+
+        Optional<Class<Object>> compiledClass = compileClass(
+                "\nstatic final String ERROR = \"none\";\n"
+                        + "@Linear String hello(boolean a, boolean b) {\n"
+                        + "  if (a && b) return \"both a and b\";\n"
+                        + "  if (a) return \"only a\";\n"
+                        + "  if (b) return \"only b\";\n"
+                        + "  else return ERROR;\n"
+                        + "}",
+                "com.my.pk", "TestClass",
+                new PrintStream( writer, true ) );
+
+        assertFalse( "Should not compile successfully", compiledClass.isPresent() );
+        assertCompilationErrorContains( writer, "error: TestClass.java:7 Cannot return non-linear value " +
+                "ERROR in linear method hello()" );
+    }
+
 }

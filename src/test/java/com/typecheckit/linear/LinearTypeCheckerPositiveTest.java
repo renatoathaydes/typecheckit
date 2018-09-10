@@ -249,7 +249,7 @@ public class LinearTypeCheckerPositiveTest extends TestUtils {
     public void canPassLinearVariableToStaticMethodTakingLinearVariable() {
         Optional<Class<Object>> compiledClass = compileClass(
                 "\nstatic class Helper {\n"
-                        +"  static void hello(String name, @Linear String surname) {\n"
+                        + "  static void hello(String name, @Linear String surname) {\n"
                         + "   System.out.println(name + \" \" + surname);\n"
                         + "  }\n"
                         + "}\n"
@@ -262,11 +262,11 @@ public class LinearTypeCheckerPositiveTest extends TestUtils {
         assertSuccessfulCompilationOfClass( compiledClass );
     }
 
-@Test
+    @Test
     public void canPassLinearVariableToStaticMethodTakingPrimitiveVariable() {
         Optional<Class<Object>> compiledClass = compileClass(
                 "\nstatic class Helper {\n"
-                        +"  static void hello(String name, int i) {\n"
+                        + "  static void hello(String name, int i) {\n"
                         + "   System.out.println(name + \" \" + i);\n"
                         + "  }\n"
                         + "}\n"
@@ -304,6 +304,91 @@ public class LinearTypeCheckerPositiveTest extends TestUtils {
                         + "  String name = \"Joe\";\n"
                         + "  @Linear int i = 1;\n"
                         + "  hello(name, i);\n"
+                        + "}" );
+
+        assertSuccessfulCompilationOfClass( compiledClass );
+    }
+
+    @Test
+    public void methodCanReturnLinearVariable() {
+        Optional<Class<Object>> compiledClass = compileClass(
+                "\n@Linear String hello(@Linear String name) {\n"
+                        + "  return \"Hello \" + name;\n"
+                        + "}\n"
+                        + "void run() {\n"
+                        + "  @Linear String msg = hello(\"Joe\");\n"
+                        + "  assert msg.equals(\"Hello Joe\");\n"
+                        + "}" );
+
+        assertSuccessfulCompilationOfClass( compiledClass );
+    }
+
+    @Test
+    public void methodCanReturnNewLinearVariable() {
+        Optional<Class<Object>> compiledClass = compileClass(
+                "\n@Linear String hello(@Linear String name) {\n"
+                        + "  return new String(\"Hello \" + name);\n"
+                        + "}\n"
+                        + "void run() {\n"
+                        + "  @Linear String msg = hello(\"Joe\");\n"
+                        + "  assert msg.equals(\"Hello Joe\");\n"
+                        + "}" );
+
+        assertSuccessfulCompilationOfClass( compiledClass );
+    }
+
+    @Test
+    public void methodCanReturnPrimitiveLinearVariable() {
+        Optional<Class<Object>> compiledClass = compileClass(
+                "\n@Linear int two() {\n"
+                        + "  return 2;\n"
+                        + "}\n"
+                        + "void run() {\n"
+                        + "  @Linear int twoVar = two();\n"
+                        + "  assert twoVar == 2;\n"
+                        + "}" );
+
+        assertSuccessfulCompilationOfClass( compiledClass );
+
+        // method does not need to be linear for primitive variable to be assignable to return value
+        compiledClass = compileClass(
+                "\nint two() {\n"
+                        + "  return 2;\n"
+                        + "}\n"
+                        + "void run() {\n"
+                        + "  @Linear int twoVar = two();\n"
+                        + "  assert twoVar == 2;\n"
+                        + "}" );
+
+        assertSuccessfulCompilationOfClass( compiledClass );
+    }
+
+    @Test
+    public void methodCanReturnPrimitiveExpressionLinearVariable() {
+        Optional<Class<Object>> compiledClass = compileClass(
+                "\n@Linear int two() {\n"
+                        + "  return 1 + 1 - 1 + 1;\n"
+                        + "}\n"
+                        + "void run() {\n"
+                        + "  @Linear int twoVar = two();\n"
+                        + "  assert twoVar == 2;\n"
+                        + "}" );
+
+        assertSuccessfulCompilationOfClass( compiledClass );
+    }
+
+    @Test
+    public void methodCanReturnNewLinearVariableFromDifferentBranches() {
+        Optional<Class<Object>> compiledClass = compileClass(
+                "\n@Linear String hello(boolean a, boolean b) {\n"
+                        + "  if (a && b) return \"both\";\n"
+                        + "  if (a) return \"only a\";\n"
+                        + "  else if (b) return \"only b\";\n"
+                        + "  else return \"none\";\n"
+                        + "}\n"
+                        + "void run() {\n"
+                        + "  @Linear String msg = hello(true, false);\n"
+                        + "  assert msg.equals(\"only a\");\n"
                         + "}" );
 
         assertSuccessfulCompilationOfClass( compiledClass );

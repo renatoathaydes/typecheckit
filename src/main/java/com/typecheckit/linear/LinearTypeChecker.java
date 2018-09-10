@@ -6,9 +6,12 @@ import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.IdentifierTree;
 import com.sun.source.tree.ImportTree;
 import com.sun.source.tree.MethodInvocationTree;
+import com.sun.source.tree.MethodTree;
+import com.sun.source.tree.ReturnTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
 import com.sun.tools.javac.code.Type;
+import com.sun.tools.javac.tree.JCTree;
 import com.sun.tools.javac.util.JCDiagnostic.DiagnosticPosition;
 import com.sun.tools.javac.util.List;
 import com.typecheckit.ScopeBasedTypeChecker;
@@ -35,6 +38,10 @@ public final class LinearTypeChecker extends ScopeBasedTypeChecker<LinearMark> {
 
     public LinearTypeChecker() {
         linearAnnotationNames.add( LINEAR_CLASS_NAME );
+    }
+
+    private boolean isLinear( IdentifierTree identifierTree ) {
+        return currentScope().getVariables().containsKey( identifierTree.getName().toString() );
     }
 
     private boolean isLinear( VariableTree node, TypeCheckerUtils typeCheckerUtils ) {
@@ -136,7 +143,7 @@ public final class LinearTypeChecker extends ScopeBasedTypeChecker<LinearMark> {
         java.util.List<? extends ExpressionTree> arguments = node.getArguments();
         for ( int i = 0, max = Math.min( parameterTypes.size(), arguments.size() ); i < max; i++ ) {
             ExpressionTree arg = arguments.get( i );
-            if ( currentScope().getVariables().containsKey( arg.toString() ) ) {
+            if ( arg instanceof IdentifierTree && isLinear( ( IdentifierTree ) arg ) ) {
                 // the argument is a @Linear variable, check if the method accepts @Linear variables
                 if ( !isLinear( parameterTypes.get( i ) ) ) {
                     reportError( typeCheckerUtils, node, methodCallError( node, arg, i ) );
@@ -144,6 +151,25 @@ public final class LinearTypeChecker extends ScopeBasedTypeChecker<LinearMark> {
             }
         }
         return super.visitMethodInvocation( node, typeCheckerUtils );
+    }
+
+    @Override
+    public Void visitReturn( ReturnTree node, TypeCheckerUtils typeCheckerUtils ) {
+        Scope<LinearMark> scope = currentScope();
+
+        scope.getMethodTree().ifPresent( methodTree -> {
+            if ( isLinear( ( ( JCTree ) methodTree.getReturnType() ).type ) ) {
+                ExpressionTree expression = node.getExpression();
+                if ( ( expression instanceof IdentifierTree && !isLinear( ( IdentifierTree ) expression ) ) ||
+                        ( ( expression instanceof MethodInvocationTree &&
+                                !hasLinearReturnType( typeCheckerUtils, expression ) ) ) ) {
+                    reportError( typeCheckerUtils, node,
+                            returnValueError( methodTree, expression ) );
+                }
+            }
+        } );
+
+        return super.visitReturn( node, typeCheckerUtils );
     }
 
     @SuppressWarnings( "ConstantConditions" )
@@ -200,9 +226,12 @@ public final class LinearTypeChecker extends ScopeBasedTypeChecker<LinearMark> {
         return "Cannot assign non-linear return type of " + initializer + " to linear variable " + node.getName();
     }
 
-    private String methodCallError( MethodInvocationTree node, ExpressionTree arg, int argIndex ) {
+    private static String methodCallError( MethodInvocationTree node, ExpressionTree arg, int argIndex ) {
         return "Cannot use linear variable " + arg + " as argument of method " +
                 node.getMethodSelect() + "() at index " + argIndex + " (parameter is not linear)";
     }
 
+    private static String returnValueError( MethodTree methodTree, Tree tree ) {
+        return "Cannot return non-linear value " + tree + " in linear method " + methodTree.getName() + "()";
+    }
 }
