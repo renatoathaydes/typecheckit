@@ -108,6 +108,24 @@ public class LinearTypeCheckerNegativeTest extends TestUtils {
     }
 
     @Test
+    public void cannotUseLinearVariableInIfBranchAfterUsedUpInIfStatementCondition() {
+        ByteArrayOutputStream writer = new ByteArrayOutputStream();
+
+        Optional<Class<Object>> compiledClass =
+                compileRunnableClassSnippet(
+                        "@Linear String hi = \"hello @Linear\";\n"
+                                + "if (hi.length() > 2) {\n"
+                                + "  System.out.println(true);\n"
+                                + "} else {\n"
+                                + "  System.out.println(hi); // should fail here\n"
+                                + "}",
+                        new PrintStream( writer, true ) );
+
+        assertFalse( "Should not compile successfully", compiledClass.isPresent() );
+        assertCompilationErrorContains( writer, "error: Runner.java:6 Re-using @Linear variable hi" );
+    }
+
+    @Test
     public void cannotUseLinearVariableAfterUsedUpInIfStatementBlock() {
         ByteArrayOutputStream writer = new ByteArrayOutputStream();
 
@@ -180,6 +198,44 @@ public class LinearTypeCheckerNegativeTest extends TestUtils {
 
         assertFalse( "Should not compile successfully", compiledClass.isPresent() );
         assertCompilationErrorContains( writer, "error: Runner.java:10 Re-using @Linear variable hello" );
+    }
+
+    @Test
+    public void cannotUseLinearVariableInsideMoreThanOneConditionalExpressionBranch() {
+        ByteArrayOutputStream writer = new ByteArrayOutputStream();
+
+        Optional<Class<Object>> compiledClass =
+                compileRunnableClassSnippet(
+                        "@Linear String hello = \"hello @Linear\";\n"
+                                + "long t = System.currentTimeMillis();\n"
+                                + "String s = (t > 20000000L)\n"
+                                + "    ? (t > 20000L)\n"
+                                + "        ? hello // used up\n"
+                                + "        : \"a\"\n"
+                                + "    : \"b\";\n"
+                                + "String t = (t < 200L)\n"
+                                + "    ? hello.toLowerCase() // should fail here\n"
+                                + "    : \"a\";\n",
+                        new PrintStream( writer, true ) );
+
+        assertFalse( "Should not compile successfully", compiledClass.isPresent() );
+        assertCompilationErrorContains( writer, "error: Runner.java:10 Re-using @Linear variable hello" );
+    }
+
+    @Test
+    public void cannotUseLinearVariableInConditionalExpressionAndInItsBranch() {
+        ByteArrayOutputStream writer = new ByteArrayOutputStream();
+
+        Optional<Class<Object>> compiledClass =
+                compileRunnableClassSnippet(
+                        "@Linear String x = \"\";\n"
+                                + "@Linear String y = x.length() == 1\n"
+                                + "  ? x.toUpperCase()\n"
+                                + "  : x.toLowerCase();\n",
+                        new PrintStream( writer, true ) );
+
+        assertFalse( "Should not compile successfully", compiledClass.isPresent() );
+        assertCompilationErrorContains( writer, "error: Runner.java:4 Re-using @Linear variable x" );
     }
 
     @Test

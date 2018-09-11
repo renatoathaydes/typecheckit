@@ -174,7 +174,10 @@ public abstract class ScopeBasedTypeChecker<M extends Mark<M>> extends DebugType
 
     @Override
     public Void visitConditionalExpression( ConditionalExpressionTree node, TypeCheckerUtils typeCheckerUtils ) {
-        return super.visitConditionalExpression( node, typeCheckerUtils );
+        scan( node.getCondition(), typeCheckerUtils );
+        scopes.enterScope( IF );
+        scanMutuallyExclusiveTrees( singleton( node.getTrueExpression() ), node.getFalseExpression(), typeCheckerUtils );
+        return null;
     }
 
     @Override

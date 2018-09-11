@@ -186,6 +186,34 @@ public class LinearTypeCheckerPositiveTest extends TestUtils {
     }
 
     @Test
+    public void canUseLinearVariableWithinMutuallyExclusiveTernaryOperatorBranches() {
+        Optional<Class<Object>> compiledClass =
+                compileRunnableClassSnippet(
+                        "@Linear String x = \"\";\n"
+                                + "int n = System.currentTimeMillis() > 3000000\n"
+                                + "  ? x.length()\n"
+                                + "  : x.hashCode();" );
+
+        assertSuccessfulCompilationOfRunnableClass( compiledClass );
+    }
+
+    @Test
+    public void canUseLinearVariableWithinMutuallyExclusiveNestedTernaryOperatorBranches() {
+        Optional<Class<Object>> compiledClass =
+                compileRunnableClassSnippet(
+                        "@Linear String x = \"\";\n"
+                                + "int n = System.currentTimeMillis() > 3000000\n"
+                                + "  ? x.length()\n"
+                                + "  : System.currentTimeMillis() > 4000000\n"
+                                + "    ? System.currentTimeMillis() > 4000000\n"
+                                + "      ? x.length()\n"
+                                + "      : x.hashCode()\n"
+                                + "    : x.hashCode();\n" );
+
+        assertSuccessfulCompilationOfRunnableClass( compiledClass );
+    }
+
+    @Test
     public void canReassignLinearVariableToAnotherVariable() {
         Optional<Class<Object>> compiledClass =
                 compileRunnableClassSnippet(
