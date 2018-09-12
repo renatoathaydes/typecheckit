@@ -23,8 +23,8 @@ import com.sun.tools.javac.util.JCDiagnostic.DiagnosticPosition;
 import com.sun.tools.javac.util.List;
 import com.typecheckit.ScopeBasedTypeChecker;
 import com.typecheckit.annotation.Linear;
-import com.typecheckit.util.TypeCheckerUtils;
 import com.typecheckit.util.ScopeStack.Scope;
+import com.typecheckit.util.TypeCheckerUtils;
 
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Name;

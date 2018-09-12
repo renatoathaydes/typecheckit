@@ -9,9 +9,9 @@ import java.util.Optional;
 import java.util.Stack;
 
 /**
- * Scope for variables.
+ * Scope stack that keeps track of variables that may be "marked" for improved type checking.
  *
- * @param <M> type of marks that may be applied to variables
+ * @param <M> type of marks that may be applied to variables within a scope
  */
 public final class ScopeStack<M extends Mark<M>> {
 
@@ -57,6 +57,9 @@ public final class ScopeStack<M extends Mark<M>> {
     }
 
     public Scope<M> exitScope() {
+        if ( scopes.size() < 2 ) {
+            throw new IllegalStateException( "Cannot exit the root scope" );
+        }
         return scopes.pop();
     }
 
@@ -81,7 +84,7 @@ public final class ScopeStack<M extends Mark<M>> {
 
     private MethodTree currentMethod() {
         MethodTree result = null;
-        for (Scope<M> scope : scopes) {
+        for ( Scope<M> scope : scopes ) {
             result = scope.methodTree;
         }
         return result;
