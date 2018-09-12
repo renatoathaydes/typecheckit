@@ -105,6 +105,34 @@ public class LinearTypeCheckerNegativeTest extends TestUtils {
 
         assertFalse( "Should not compile successfully", compiledClass.isPresent() );
         assertCompilationErrorContains( writer, "error: Runner.java:6 Re-using @Linear variable hi" );
+
+        writer.reset();
+
+        compiledClass = compileRunnableClassSnippet(
+                "@Linear String hi = \"hello @Linear\";\n"
+                        + "if (hi.length() > 2) {\n"
+                        + "  System.out.println(true);\n"
+                        + "} else {\n"
+                        + "  System.out.println(hi.toLowerCase()); // should fail here\n"
+                        + "}",
+                new PrintStream( writer, true ) );
+
+        assertFalse( "Should not compile successfully", compiledClass.isPresent() );
+        assertCompilationErrorContains( writer, "error: Runner.java:6 Re-using @Linear variable hi" );
+
+        writer.reset();
+
+        compiledClass = compileRunnableClassSnippet(
+                "@Linear String hi = \"hello @Linear\";\n"
+                        + "if (hi.length() > 2) {\n"
+                        + "  System.out.println(hi.toLowerCase()); // should fail here\n"
+                        + "} else {\n"
+                        + "  System.out.println(true);\n"
+                        + "}",
+                new PrintStream( writer, true ) );
+
+        assertFalse( "Should not compile successfully", compiledClass.isPresent() );
+        assertCompilationErrorContains( writer, "error: Runner.java:4 Re-using @Linear variable hi" );
     }
 
     @Test
