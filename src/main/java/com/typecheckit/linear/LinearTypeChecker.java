@@ -1,14 +1,21 @@
 package com.typecheckit.linear;
 
+import com.sun.source.tree.ArrayAccessTree;
 import com.sun.source.tree.AssignmentTree;
 import com.sun.source.tree.CompilationUnitTree;
+import com.sun.source.tree.CompoundAssignmentTree;
+import com.sun.source.tree.ConditionalExpressionTree;
 import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.IdentifierTree;
 import com.sun.source.tree.ImportTree;
+import com.sun.source.tree.MemberReferenceTree;
+import com.sun.source.tree.MemberSelectTree;
 import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.MethodTree;
+import com.sun.source.tree.ParenthesizedTree;
 import com.sun.source.tree.ReturnTree;
 import com.sun.source.tree.Tree;
+import com.sun.source.tree.TypeCastTree;
 import com.sun.source.tree.VariableTree;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.tree.JCTree;
@@ -80,7 +87,7 @@ public final class LinearTypeChecker extends ScopeBasedTypeChecker<LinearMark> {
             scanInitializer = false; // no need to visit the initializer, already done what was needed
         } else if ( isLinear( node, typeCheckerUtils ) ) {
             if ( initializer instanceof MethodInvocationTree ) {
-                boolean isLinearReturnType = hasLinearReturnType( typeCheckerUtils, initializer );
+                boolean isLinearReturnType = hasLinearReturnType( typeCheckerUtils, ( MethodInvocationTree ) initializer );
                 if ( !isLinearReturnType ) {
                     reportError( typeCheckerUtils, node, assignmentError( node, ( MethodInvocationTree ) initializer ) );
                 }
@@ -160,20 +167,51 @@ public final class LinearTypeChecker extends ScopeBasedTypeChecker<LinearMark> {
         scope.getMethodTree().ifPresent( methodTree -> {
             if ( isLinear( ( ( JCTree ) methodTree.getReturnType() ).type ) ) {
                 ExpressionTree expression = node.getExpression();
-                if ( ( expression instanceof IdentifierTree && !isLinear( ( IdentifierTree ) expression ) ) ||
-                        ( ( expression instanceof MethodInvocationTree &&
-                                !hasLinearReturnType( typeCheckerUtils, expression ) ) ) ) {
-                    reportError( typeCheckerUtils, node,
-                            returnValueError( methodTree, expression ) );
-                }
+                verifyExpressionIsLinear( methodTree, typeCheckerUtils, expression );
             }
         } );
 
         return super.visitReturn( node, typeCheckerUtils );
     }
 
+    private void verifyExpressionIsLinear( MethodTree methodTree,
+                                           TypeCheckerUtils typeCheckerUtils,
+                                           ExpressionTree expression ) {
+        Tree erroneousTree = null;
+        if ( expression instanceof AssignmentTree ) {
+            verifyExpressionIsLinear( methodTree, typeCheckerUtils, ( ( AssignmentTree ) expression ).getExpression() );
+        } else if ( expression instanceof CompoundAssignmentTree ) {
+            verifyExpressionIsLinear( methodTree, typeCheckerUtils, ( ( CompoundAssignmentTree ) expression ).getExpression() );
+        } else if ( expression instanceof ConditionalExpressionTree ) {
+            verifyExpressionIsLinear( methodTree, typeCheckerUtils, ( ( ConditionalExpressionTree ) expression ).getTrueExpression() );
+            verifyExpressionIsLinear( methodTree, typeCheckerUtils, ( ( ConditionalExpressionTree ) expression ).getFalseExpression() );
+        } else if ( expression instanceof TypeCastTree ) {
+            verifyExpressionIsLinear( methodTree, typeCheckerUtils, ( ( TypeCastTree ) expression ).getExpression() );
+        } else if ( expression instanceof ParenthesizedTree ) {
+            verifyExpressionIsLinear( methodTree, typeCheckerUtils, ( ( ParenthesizedTree ) expression ).getExpression() );
+        } else if ( expression instanceof MethodInvocationTree ) {
+            if ( !hasLinearReturnType( typeCheckerUtils, ( MethodInvocationTree ) expression ) ) {
+                erroneousTree = expression;
+            }
+        } else if ( expression instanceof IdentifierTree ) {
+            if ( !isLinear( ( IdentifierTree ) expression ) ) {
+                erroneousTree = expression;
+            }
+        } else if ( expression instanceof ArrayAccessTree
+                || expression instanceof MemberReferenceTree
+                || expression instanceof MemberSelectTree ) {
+            // none of these types of expression can be linear
+            erroneousTree = expression;
+        }
+
+        if ( erroneousTree != null ) {
+            reportError( typeCheckerUtils, erroneousTree,
+                    returnValueError( methodTree, erroneousTree ) );
+        }
+    }
+
     @SuppressWarnings( "ConstantConditions" )
-    private boolean hasLinearReturnType( TypeCheckerUtils typeCheckerUtils, ExpressionTree initializer ) {
+    private boolean hasLinearReturnType( TypeCheckerUtils typeCheckerUtils, MethodInvocationTree initializer ) {
         // do not report error if we simply can't find the element because
         // that probably means there's some other error in the source code already
         boolean defaultReturnValue = true;

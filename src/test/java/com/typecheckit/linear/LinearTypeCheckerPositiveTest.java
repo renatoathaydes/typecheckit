@@ -422,4 +422,24 @@ public class LinearTypeCheckerPositiveTest extends TestUtils {
         assertSuccessfulCompilationOfClass( compiledClass );
     }
 
+    @Test
+    public void methodCanReturnNewLinearVariableFromDifferentBranchesOfTernaryOperator() {
+        Optional<Class<Object>> compiledClass = compileClass(
+                "\n@Linear String hello(boolean a, boolean b) {\n"
+                        + "  return (a && b)"
+                        + "    ? \"both\"\n"
+                        + "    : (a)\n"
+                        + "        ? \"only a\"\n"
+                        + "        : (b)\n"
+                        + "           ? \"only b\"\n"
+                        + "           : \"none\";\n"
+                        + "}\n"
+                        + "void run() {\n"
+                        + "  @Linear String msg = hello(true, false);\n"
+                        + "  assert msg.equals(\"only a\");\n"
+                        + "}" );
+
+        assertSuccessfulCompilationOfClass( compiledClass );
+    }
+
 }
