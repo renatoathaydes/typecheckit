@@ -13,11 +13,11 @@ import java.util.Stack;
  *
  * @param <M> type of marks that may be applied to variables
  */
-public final class VariableScope<M extends Mark<M>> {
+public final class ScopeStack<M extends Mark<M>> {
 
     private final Stack<Scope<M>> scopes = new Stack<>();
 
-    public VariableScope() {
+    public ScopeStack() {
         scopes.push( new Scope<>( BlockKind.ROOT, "<root>", new HashMap<>( 6 ), null ) );
     }
 
@@ -89,7 +89,7 @@ public final class VariableScope<M extends Mark<M>> {
 
     @Override
     public String toString() {
-        return "VariableScope{" +
+        return "ScopeStack{" +
                 "scopesStack=" + scopes +
                 '}';
     }

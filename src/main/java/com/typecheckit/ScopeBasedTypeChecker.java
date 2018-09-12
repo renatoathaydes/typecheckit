@@ -2,8 +2,8 @@ package com.typecheckit;
 
 import com.sun.source.tree.*;
 import com.typecheckit.util.Mark;
+import com.typecheckit.util.ScopeStack;
 import com.typecheckit.util.TypeCheckerUtils;
-import com.typecheckit.util.VariableScope;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -17,9 +17,9 @@ import static java.util.Collections.singleton;
 
 public abstract class ScopeBasedTypeChecker<M extends Mark<M>> extends DebugTypeChecker {
 
-    private final VariableScope<M> scopes = new VariableScope<>();
+    private final ScopeStack<M> scopes = new ScopeStack<>();
 
-    protected VariableScope.Scope<M> currentScope() {
+    protected ScopeStack.Scope<M> currentScope() {
         return scopes.currentScope();
     }
 
