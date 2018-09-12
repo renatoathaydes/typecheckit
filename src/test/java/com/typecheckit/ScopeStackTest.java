@@ -6,6 +6,8 @@ import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
 import org.junit.Test;
 
+import static com.typecheckit.TestUtils.shouldThrow;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
 
@@ -222,4 +224,18 @@ public class ScopeStackTest {
         // we cannot affect a parent scope when we duplicate a scope, rather than merely "entering" it
         assertThat( scopeStack.get( "first" ), hasIndex( 1 ) );
     }
+
+    @Test
+    public void cannotExitRootScope() {
+        ScopeStack<TestMark> scopeStack = new ScopeStack<>();
+        IllegalStateException error = shouldThrow( IllegalStateException.class, scopeStack::exitScope );
+        assertThat( error.getMessage(), equalTo( "Cannot exit the root scope" ) );
+
+        scopeStack.enterScope( BlockKind.OTHER );
+        scopeStack.exitScope();
+
+        error = shouldThrow( IllegalStateException.class, scopeStack::exitScope );
+        assertThat( error.getMessage(), equalTo( "Cannot exit the root scope" ) );
+    }
+
 }

@@ -2,6 +2,7 @@ package com.typecheckit;
 
 import com.athaydes.osgiaas.javac.internal.DefaultClassLoaderContext;
 import com.athaydes.osgiaas.javac.internal.compiler.OsgiaasJavaCompiler;
+import junit.framework.AssertionFailedError;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
@@ -103,6 +104,19 @@ public class TestUtils {
         assertThat( compiledClass.orElseThrow( () -> new RuntimeException( "Error compiling, see compiler output" ) )
                 .asSubclass( expectedSuperType )
                 .getName(), equalTo( expectedClassName ) );
+    }
+
+    public static <E extends Throwable> E shouldThrow( Class<E> errorType, Runnable action ) {
+        try {
+            action.run();
+            throw new AssertionFailedError( "No exception was thrown" );
+        } catch ( Exception e ) {
+            if ( errorType.isAssignableFrom( e.getClass() ) ) {
+                return errorType.cast( e );
+            }
+            throw new AssertionFailedError( "Expected Exception of type " + errorType.getName() +
+                    " but " + e.getClass().getName() + " was thrown" );
+        }
     }
 
 }
