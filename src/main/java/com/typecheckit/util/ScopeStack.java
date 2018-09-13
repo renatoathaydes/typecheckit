@@ -90,6 +90,15 @@ public final class ScopeStack<M extends Mark<M>> {
         return result;
     }
 
+    public boolean isWithinLoop() {
+        for ( Scope<M> scope : scopes ) {
+            if ( scope.getBlockKind().isLoop() ) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     @Override
     public String toString() {
         return "ScopeStack{" +

@@ -333,6 +333,24 @@ public class LinearTypeCheckerNegativeTest extends TestUtils {
     }
 
     @Test
+    public void cannotUseLinearVariableInsideBlockInsideWhileLoop() {
+        ByteArrayOutputStream writer = new ByteArrayOutputStream();
+
+        Optional<Class<Object>> compiledClass =
+                compileRunnableClassSnippet(
+                        "@Linear String hello = \"hello @Linear\";\n"
+                                + "Object lock = new Object();\n"
+                                + "int i = 1;\n"
+                                + "while (i++ < 10) {\n"
+                                + "    synchronized(lock) {hello.toLowerCase(); } // should fail here\n"
+                                + "}",
+                        new PrintStream( writer, true ) );
+
+        assertFalse( "Should not compile successfully", compiledClass.isPresent() );
+        assertCompilationErrorContains( writer, "error: Runner.java:6 Re-using @Linear variable hello" );
+    }
+
+    @Test
     public void cannotUseLinearVariableInTernaryOperatorAssignmentAfterUsedUp() {
         ByteArrayOutputStream writer = new ByteArrayOutputStream();
 

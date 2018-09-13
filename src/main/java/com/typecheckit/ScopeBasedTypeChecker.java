@@ -38,6 +38,10 @@ public abstract class ScopeBasedTypeChecker<M extends Mark<M>> extends TypeCheck
         return scopes.currentScope();
     }
 
+    public ScopeStack<M> getScopes() {
+        return scopes;
+    }
+
     @Override
     public void stop() {
         if ( scopes.size() != 1 ) {

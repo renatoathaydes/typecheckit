@@ -131,7 +131,7 @@ public final class LinearTypeChecker extends ScopeBasedTypeChecker<LinearMark> {
         LinearMark mark = scope.getVariables().get( nodeName );
 
         if ( mark != null ) {
-            if ( scope.getBlockKind().isLoop() ) {
+            if ( getScopes().isWithinLoop() ) {
                 // @Linear variable cannot be safely used in loops
                 mark.markAsUsed();
             }
