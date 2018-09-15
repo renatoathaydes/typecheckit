@@ -2,8 +2,8 @@ package com.typecheckit.util;
 
 import com.sun.source.tree.CompilationUnitTree;
 import com.sun.source.tree.MethodInvocationTree;
+import com.sun.source.tree.ModifiersTree;
 import com.sun.source.tree.Tree;
-import com.sun.source.tree.VariableTree;
 import com.sun.source.util.TreePath;
 import com.sun.source.util.Trees;
 import com.sun.tools.javac.code.Type;
@@ -48,8 +48,8 @@ public class TypeCheckerUtils {
         return compilationUnit;
     }
 
-    public List<String> annotationNames( VariableTree var ) {
-        return var.getModifiers().getAnnotations().stream()
+    public List<String> annotationNames( ModifiersTree modifiersTree ) {
+        return modifiersTree.getAnnotations().stream()
                 .map( a -> a.getAnnotationType().toString() )
                 .collect( toList() );
     }

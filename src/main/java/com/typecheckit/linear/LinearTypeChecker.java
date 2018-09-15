@@ -12,13 +12,14 @@ import com.sun.source.tree.MemberReferenceTree;
 import com.sun.source.tree.MemberSelectTree;
 import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.MethodTree;
+import com.sun.source.tree.ModifiersTree;
 import com.sun.source.tree.ParenthesizedTree;
 import com.sun.source.tree.ReturnTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.TypeCastTree;
 import com.sun.source.tree.VariableTree;
+import com.sun.tools.javac.code.Symbol;
 import com.sun.tools.javac.code.Type;
-import com.sun.tools.javac.tree.JCTree;
 import com.sun.tools.javac.util.JCDiagnostic.DiagnosticPosition;
 import com.sun.tools.javac.util.List;
 import com.typecheckit.ScopeBasedTypeChecker;
@@ -26,15 +27,12 @@ import com.typecheckit.annotation.Linear;
 import com.typecheckit.util.ScopeStack.Scope;
 import com.typecheckit.util.TypeCheckerUtils;
 
-import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Name;
 import javax.lang.model.type.PrimitiveType;
-import javax.lang.model.type.TypeMirror;
 import java.util.HashSet;
 import java.util.Set;
 
 import static javax.tools.Diagnostic.Kind.ERROR;
-import static javax.tools.Diagnostic.Kind.WARNING;
 
 public final class LinearTypeChecker extends ScopeBasedTypeChecker<LinearMark> {
 
@@ -51,13 +49,13 @@ public final class LinearTypeChecker extends ScopeBasedTypeChecker<LinearMark> {
         return currentScope().getVariables().containsKey( identifierTree.getName().toString() );
     }
 
-    private boolean isLinear( VariableTree node, TypeCheckerUtils typeCheckerUtils ) {
-        return typeCheckerUtils.annotationNames( node ).stream()
+    private boolean isLinear( ModifiersTree modifiers, TypeCheckerUtils typeCheckerUtils ) {
+        return typeCheckerUtils.annotationNames( modifiers ).stream()
                 .anyMatch( linearAnnotationNames::contains );
     }
 
-    private boolean isLinear( TypeMirror node ) {
-        return node instanceof PrimitiveType || node.getAnnotationMirrors().stream()
+    private boolean isLinear( Type type ) {
+        return type instanceof PrimitiveType || type.getAnnotationMirrors().stream()
                 .anyMatch( it -> it.getAnnotationType().toString().equals( LINEAR_CLASS_NAME ) );
     }
 
@@ -80,12 +78,12 @@ public final class LinearTypeChecker extends ScopeBasedTypeChecker<LinearMark> {
             IdentifierTree idInit = ( IdentifierTree ) initializer;
             boolean copied = copyMarkToAlias( node.getName(), idInit );
             if ( !copied ) { // then the initializer did not have a mark
-                if ( isLinear( node, typeCheckerUtils ) ) { // then the assignment cannot be allowed
+                if ( isLinear( node.getModifiers(), typeCheckerUtils ) ) { // then the assignment cannot be allowed
                     reportError( typeCheckerUtils, idInit, assignmentError( node, idInit ) );
                 }
             }
             scanInitializer = false; // no need to visit the initializer, already done what was needed
-        } else if ( isLinear( node, typeCheckerUtils ) ) {
+        } else if ( isLinear( node.getModifiers(), typeCheckerUtils ) ) {
             if ( initializer instanceof MethodInvocationTree ) {
                 boolean isLinearReturnType = hasLinearReturnType( typeCheckerUtils, ( MethodInvocationTree ) initializer );
                 if ( !isLinearReturnType ) {
@@ -165,7 +163,7 @@ public final class LinearTypeChecker extends ScopeBasedTypeChecker<LinearMark> {
         Scope<LinearMark> scope = currentScope();
 
         scope.getMethodTree().ifPresent( methodTree -> {
-            if ( isLinear( ( ( JCTree ) methodTree.getReturnType() ).type ) ) {
+            if ( isLinear( methodTree.getModifiers(), typeCheckerUtils ) ) {
                 ExpressionTree expression = node.getExpression();
                 verifyExpressionIsLinear( methodTree, typeCheckerUtils, expression );
             }
@@ -217,15 +215,7 @@ public final class LinearTypeChecker extends ScopeBasedTypeChecker<LinearMark> {
         boolean defaultReturnValue = true;
 
         return typeCheckerUtils.getTreeElement( initializer )
-                .filter( element -> {
-                    if ( element instanceof ExecutableElement ) {
-                        return true;
-                    } else {
-                        typeCheckerUtils.getMessager().printMessage( WARNING,
-                                "Unable to determine whether element is @Linear: " + element );
-                        return false;
-                    }
-                } ).map( element -> isLinear( ( ( ExecutableElement ) element ).getReturnType() ) )
+                .map( element -> isLinear( ( ( Symbol.MethodSymbol ) element ).getReturnType() ) )
                 .orElse( defaultReturnValue );
     }
 
