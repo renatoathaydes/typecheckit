@@ -1,6 +1,5 @@
 package com.typecheckit.linear;
 
-import com.sun.source.tree.ArrayAccessTree;
 import com.sun.source.tree.AssignmentTree;
 import com.sun.source.tree.CompilationUnitTree;
 import com.sun.source.tree.CompoundAssignmentTree;
@@ -8,8 +7,6 @@ import com.sun.source.tree.ConditionalExpressionTree;
 import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.IdentifierTree;
 import com.sun.source.tree.ImportTree;
-import com.sun.source.tree.MemberReferenceTree;
-import com.sun.source.tree.MemberSelectTree;
 import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.ModifiersTree;
@@ -28,7 +25,6 @@ import com.typecheckit.util.ScopeStack.Scope;
 import com.typecheckit.util.TypeCheckerUtils;
 
 import javax.lang.model.element.Name;
-import javax.lang.model.type.PrimitiveType;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -55,7 +51,7 @@ public final class LinearTypeChecker extends ScopeBasedTypeChecker<LinearMark> {
     }
 
     private boolean isLinear( Type type ) {
-        return type instanceof PrimitiveType || type.getAnnotationMirrors().stream()
+        return type.getKind().isPrimitive() || type.getAnnotationMirrors().stream()
                 .anyMatch( it -> it.getAnnotationType().toString().equals( LINEAR_CLASS_NAME ) );
     }
 
@@ -74,23 +70,25 @@ public final class LinearTypeChecker extends ScopeBasedTypeChecker<LinearMark> {
     public Void visitVariable( VariableTree node, TypeCheckerUtils typeCheckerUtils ) {
         boolean scanInitializer = true;
         ExpressionTree initializer = node.getInitializer();
-        if ( initializer instanceof IdentifierTree ) {
-            IdentifierTree idInit = ( IdentifierTree ) initializer;
-            boolean copied = copyMarkToAlias( node.getName(), idInit );
-            if ( !copied ) { // then the initializer did not have a mark
-                if ( isLinear( node.getModifiers(), typeCheckerUtils ) ) { // then the assignment cannot be allowed
-                    reportError( typeCheckerUtils, idInit, assignmentError( node, idInit ) );
+        if ( initializer != null ) {
+            if ( initializer.getKind() == Tree.Kind.IDENTIFIER ) {
+                IdentifierTree idInit = ( IdentifierTree ) initializer;
+                boolean copied = copyMarkToAlias( node.getName(), idInit );
+                if ( !copied ) { // then the initializer did not have a mark
+                    if ( isLinear( node.getModifiers(), typeCheckerUtils ) ) { // then the assignment cannot be allowed
+                        reportError( typeCheckerUtils, idInit, assignmentError( node, idInit ) );
+                    }
                 }
-            }
-            scanInitializer = false; // no need to visit the initializer, already done what was needed
-        } else if ( isLinear( node.getModifiers(), typeCheckerUtils ) ) {
-            if ( initializer instanceof MethodInvocationTree ) {
-                boolean isLinearReturnType = hasLinearReturnType( typeCheckerUtils, ( MethodInvocationTree ) initializer );
-                if ( !isLinearReturnType ) {
-                    reportError( typeCheckerUtils, node, assignmentError( node, ( MethodInvocationTree ) initializer ) );
+                scanInitializer = false; // no need to visit the initializer, already done what was needed
+            } else if ( isLinear( node.getModifiers(), typeCheckerUtils ) ) {
+                if ( initializer.getKind() == Tree.Kind.METHOD_INVOCATION ) {
+                    boolean isLinearReturnType = hasLinearReturnType( typeCheckerUtils, ( MethodInvocationTree ) initializer );
+                    if ( !isLinearReturnType ) {
+                        reportError( typeCheckerUtils, node, assignmentError( node, ( MethodInvocationTree ) initializer ) );
+                    }
                 }
+                currentScope().getVariables().put( node.getName().toString(), new LinearMark( node ) );
             }
-            currentScope().getVariables().put( node.getName().toString(), new LinearMark( node ) );
         }
 
         scan( node.getModifiers(), typeCheckerUtils );
@@ -106,10 +104,10 @@ public final class LinearTypeChecker extends ScopeBasedTypeChecker<LinearMark> {
     public Void visitAssignment( AssignmentTree node, TypeCheckerUtils typeCheckerUtils ) {
         ExpressionTree variable = node.getVariable();
         ExpressionTree expression = node.getExpression();
-        if ( variable instanceof IdentifierTree ) {
+        if ( variable.getKind() == Tree.Kind.IDENTIFIER ) {
             // variable does not need to be scanned as we now know it's not being used, but assigned to
             IdentifierTree idVar = ( IdentifierTree ) variable;
-            if ( expression instanceof IdentifierTree ) {
+            if ( expression.getKind() == Tree.Kind.IDENTIFIER ) {
                 IdentifierTree idExpr = ( IdentifierTree ) expression;
                 copyMarkToAlias( idVar.getName(), idExpr );
             } else {
@@ -148,7 +146,7 @@ public final class LinearTypeChecker extends ScopeBasedTypeChecker<LinearMark> {
         java.util.List<? extends ExpressionTree> arguments = node.getArguments();
         for ( int i = 0, max = Math.min( parameterTypes.size(), arguments.size() ); i < max; i++ ) {
             ExpressionTree arg = arguments.get( i );
-            if ( arg instanceof IdentifierTree && isLinear( ( IdentifierTree ) arg ) ) {
+            if ( arg.getKind() == Tree.Kind.IDENTIFIER && isLinear( ( IdentifierTree ) arg ) ) {
                 // the argument is a @Linear variable, check if the method accepts @Linear variables
                 if ( !isLinear( parameterTypes.get( i ) ) ) {
                     reportError( typeCheckerUtils, node, methodCallError( node, arg, i ) );
@@ -176,28 +174,30 @@ public final class LinearTypeChecker extends ScopeBasedTypeChecker<LinearMark> {
                                            TypeCheckerUtils typeCheckerUtils,
                                            ExpressionTree expression ) {
         Tree erroneousTree = null;
-        if ( expression instanceof AssignmentTree ) {
+        Tree.Kind kind = expression.getKind();
+
+        if ( kind == Tree.Kind.ASSIGNMENT ) {
             verifyExpressionIsLinear( methodTree, typeCheckerUtils, ( ( AssignmentTree ) expression ).getExpression() );
-        } else if ( expression instanceof CompoundAssignmentTree ) {
+        } else if ( kind.asInterface().equals( CompoundAssignmentTree.class ) ) {
             verifyExpressionIsLinear( methodTree, typeCheckerUtils, ( ( CompoundAssignmentTree ) expression ).getExpression() );
-        } else if ( expression instanceof ConditionalExpressionTree ) {
+        } else if ( kind.asInterface().equals( ConditionalExpressionTree.class ) ) {
             verifyExpressionIsLinear( methodTree, typeCheckerUtils, ( ( ConditionalExpressionTree ) expression ).getTrueExpression() );
             verifyExpressionIsLinear( methodTree, typeCheckerUtils, ( ( ConditionalExpressionTree ) expression ).getFalseExpression() );
-        } else if ( expression instanceof TypeCastTree ) {
+        } else if ( kind == Tree.Kind.TYPE_CAST ) {
             verifyExpressionIsLinear( methodTree, typeCheckerUtils, ( ( TypeCastTree ) expression ).getExpression() );
-        } else if ( expression instanceof ParenthesizedTree ) {
+        } else if ( kind == Tree.Kind.PARENTHESIZED ) {
             verifyExpressionIsLinear( methodTree, typeCheckerUtils, ( ( ParenthesizedTree ) expression ).getExpression() );
-        } else if ( expression instanceof MethodInvocationTree ) {
+        } else if ( kind == Tree.Kind.METHOD_INVOCATION ) {
             if ( !hasLinearReturnType( typeCheckerUtils, ( MethodInvocationTree ) expression ) ) {
                 erroneousTree = expression;
             }
-        } else if ( expression instanceof IdentifierTree ) {
+        } else if ( kind == Tree.Kind.IDENTIFIER ) {
             if ( !isLinear( ( IdentifierTree ) expression ) ) {
                 erroneousTree = expression;
             }
-        } else if ( expression instanceof ArrayAccessTree
-                || expression instanceof MemberReferenceTree
-                || expression instanceof MemberSelectTree ) {
+        } else if ( kind == Tree.Kind.ARRAY_ACCESS
+                || kind == Tree.Kind.MEMBER_REFERENCE
+                || kind == Tree.Kind.MEMBER_SELECT ) {
             // none of these types of expression can be linear
             erroneousTree = expression;
         }
