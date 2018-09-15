@@ -3,6 +3,8 @@ package com.typecheckit.linear;
 import com.sun.source.tree.VariableTree;
 import com.typecheckit.util.Mark;
 
+import javax.lang.model.element.Name;
+
 final class LinearMark extends Mark<LinearMark> {
 
     private final VariableTree node;
@@ -20,8 +22,8 @@ final class LinearMark extends Mark<LinearMark> {
         return usedUp;
     }
 
-    String name() {
-        return node.getName().toString();
+    Name name() {
+        return node.getName();
     }
 
     @Override

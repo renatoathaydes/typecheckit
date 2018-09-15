@@ -189,12 +189,12 @@ public abstract class ScopeBasedTypeChecker<M extends Mark<M>> extends TypeCheck
 
         scan( tree2, typeCheckerUtils );
 
-        Map<String, M> activeScope = scopes.exitScope().getVariables();
-        Map<String, M> tempScope = scopes.exitScope().getVariables();
+        Map<CharSequence, M> activeScope = scopes.exitScope().getVariables();
+        Map<CharSequence, M> tempScope = scopes.exitScope().getVariables();
         applyScopeCorrections( activeScope, tempScope );
     }
 
-    private void applyScopeCorrections( Map<String, M> activeScope, Map<String, M> temporaryScope ) {
+    private void applyScopeCorrections( Map<CharSequence, M> activeScope, Map<CharSequence, M> temporaryScope ) {
         activeScope.forEach( ( key, mark ) -> {
             M tempMark = temporaryScope.get( key );
             if ( tempMark != null ) {

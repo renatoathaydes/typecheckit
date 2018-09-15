@@ -42,7 +42,7 @@ public final class LinearTypeChecker extends ScopeBasedTypeChecker<LinearMark> {
     }
 
     private boolean isLinear( IdentifierTree identifierTree ) {
-        return currentScope().getVariables().containsKey( identifierTree.getName().toString() );
+        return currentScope().getVariables().containsKey( identifierTree.getName() );
     }
 
     private boolean isLinear( ModifiersTree modifiers, TypeCheckerUtils typeCheckerUtils ) {
@@ -87,7 +87,7 @@ public final class LinearTypeChecker extends ScopeBasedTypeChecker<LinearMark> {
                         reportError( typeCheckerUtils, node, assignmentError( node, ( MethodInvocationTree ) initializer ) );
                     }
                 }
-                currentScope().getVariables().put( node.getName().toString(), new LinearMark( node ) );
+                currentScope().getVariables().put( node.getName(), new LinearMark( node ) );
             }
         }
 
@@ -122,7 +122,7 @@ public final class LinearTypeChecker extends ScopeBasedTypeChecker<LinearMark> {
 
     @Override
     public Void visitIdentifier( IdentifierTree node, TypeCheckerUtils typeCheckerUtils ) {
-        String nodeName = node.getName().toString();
+        Name nodeName = node.getName();
         Scope<LinearMark> scope = currentScope();
         LinearMark mark = scope.getVariables().get( nodeName );
 
@@ -220,9 +220,9 @@ public final class LinearTypeChecker extends ScopeBasedTypeChecker<LinearMark> {
     }
 
     private boolean copyMarkToAlias( Name variable, IdentifierTree expression ) {
-        LinearMark mark = currentScope().getVariables().get( expression.getName().toString() );
+        LinearMark mark = currentScope().getVariables().get( expression.getName() );
         if ( mark != null ) {
-            currentScope().getVariables().put( variable.toString(), mark );
+            currentScope().getVariables().put( variable, mark );
         }
         return mark != null;
     }
@@ -239,7 +239,7 @@ public final class LinearTypeChecker extends ScopeBasedTypeChecker<LinearMark> {
 
     private static String reusingError( LinearMark mark, IdentifierTree node ) {
         String aliasInfo = "";
-        if ( !mark.name().equals( node.getName().toString() ) ) {
+        if ( !mark.name().equals( node.getName() ) ) {
             aliasInfo = " (aliased as " + node.getName() + ")";
         }
 

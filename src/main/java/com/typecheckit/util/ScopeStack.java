@@ -38,17 +38,17 @@ public final class ScopeStack<M extends Mark<M>> {
     }
 
     private void enterScope( BlockKind blockKind, CharSequence name, MethodTree methodTree ) {
-        Map<String, M> variables = new HashMap<>( 6 );
-        for ( Map.Entry<String, M> entry : currentScope().getVariables().entrySet() ) {
+        Map<CharSequence, M> variables = new HashMap<>( 6 );
+        for ( Map.Entry<CharSequence, M> entry : currentScope().getVariables().entrySet() ) {
             variables.put( entry.getKey(), entry.getValue().enterNewScope() );
         }
         scopes.push( new Scope<>( blockKind, name, variables, methodTree ) );
     }
 
     public void duplicateScope() {
-        Map<String, M> variables = new HashMap<>( 6 );
+        Map<CharSequence, M> variables = new HashMap<>( 6 );
         Scope<M> scope = currentScope();
-        for ( Map.Entry<String, M> entry : scope.getVariables().entrySet() ) {
+        for ( Map.Entry<CharSequence, M> entry : scope.getVariables().entrySet() ) {
             variables.put( entry.getKey(), entry.getValue().copy() );
         }
         scopes.push( new Scope<M>( scope.getBlockKind(),
@@ -70,11 +70,11 @@ public final class ScopeStack<M extends Mark<M>> {
         scopes.push( second );
     }
 
-    public M get( String name ) {
+    public M get( CharSequence name ) {
         return currentScope().getVariables().get( name );
     }
 
-    public void put( String name, M variable ) {
+    public void put( CharSequence name, M variable ) {
         currentScope().getVariables().put( name, variable );
     }
 
@@ -109,10 +109,10 @@ public final class ScopeStack<M extends Mark<M>> {
     public static final class Scope<M> {
         private final BlockKind blockKind;
         private final CharSequence name;
-        private final Map<String, M> variables;
+        private final Map<CharSequence, M> variables;
         private final MethodTree methodTree;
 
-        public Scope( BlockKind blockKind, CharSequence name, Map<String, M> variables, MethodTree methodTree ) {
+        public Scope( BlockKind blockKind, CharSequence name, Map<CharSequence, M> variables, MethodTree methodTree ) {
             this.blockKind = blockKind;
             this.name = name;
             this.variables = variables;
@@ -127,7 +127,7 @@ public final class ScopeStack<M extends Mark<M>> {
             return name;
         }
 
-        public Map<String, M> getVariables() {
+        public Map<CharSequence, M> getVariables() {
             return variables;
         }
 
