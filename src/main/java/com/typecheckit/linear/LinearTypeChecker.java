@@ -68,56 +68,55 @@ public final class LinearTypeChecker extends ScopeBasedTypeChecker<LinearMark> {
 
     @Override
     public Void visitVariable( VariableTree node, TypeCheckerUtils typeCheckerUtils ) {
-        boolean scanInitializer = true;
-        ExpressionTree initializer = node.getInitializer();
-        if ( initializer != null ) {
-            if ( initializer.getKind() == Tree.Kind.IDENTIFIER ) {
-                IdentifierTree idInit = ( IdentifierTree ) initializer;
-                boolean copied = copyMarkToAlias( node.getName(), idInit );
-                if ( !copied ) { // then the initializer did not have a mark
-                    if ( isLinear( node.getModifiers(), typeCheckerUtils ) ) { // then the assignment cannot be allowed
-                        reportError( typeCheckerUtils, idInit, assignmentError( node, idInit ) );
-                    }
-                }
-                scanInitializer = false; // no need to visit the initializer, already done what was needed
-            } else if ( isLinear( node.getModifiers(), typeCheckerUtils ) ) {
-                if ( initializer.getKind() == Tree.Kind.METHOD_INVOCATION ) {
-                    boolean isLinearReturnType = hasLinearReturnType( typeCheckerUtils, ( MethodInvocationTree ) initializer );
-                    if ( !isLinearReturnType ) {
-                        reportError( typeCheckerUtils, node, assignmentError( node, ( MethodInvocationTree ) initializer ) );
-                    }
-                }
-                currentScope().getVariables().put( node.getName(), new LinearMark( node ) );
+        boolean isLinearVariable = isLinear( node.getModifiers(), typeCheckerUtils );
+
+        if ( isLinearVariable ) {
+            ExpressionTree initializer = node.getInitializer();
+            if ( initializer != null ) {
+                checkLinearVariableValue( node, node.getName(), initializer, typeCheckerUtils );
             }
+            System.out.println( "Variable " + node.getName() + " is linear!" );
+            currentScope().getVariables().put( node.getName(), new LinearMark( node ) );
         }
 
-        scan( node.getModifiers(), typeCheckerUtils );
-        scan( node.getType(), typeCheckerUtils );
-        scan( node.getNameExpression(), typeCheckerUtils );
-        if ( scanInitializer ) {
-            scan( initializer, typeCheckerUtils );
-        }
-        return null;
+        return super.visitVariable( node, typeCheckerUtils );
     }
 
     @Override
     public Void visitAssignment( AssignmentTree node, TypeCheckerUtils typeCheckerUtils ) {
         ExpressionTree variable = node.getVariable();
-        ExpressionTree expression = node.getExpression();
         if ( variable.getKind() == Tree.Kind.IDENTIFIER ) {
-            // variable does not need to be scanned as we now know it's not being used, but assigned to
             IdentifierTree idVar = ( IdentifierTree ) variable;
-            if ( expression.getKind() == Tree.Kind.IDENTIFIER ) {
-                IdentifierTree idExpr = ( IdentifierTree ) expression;
-                copyMarkToAlias( idVar.getName(), idExpr );
-            } else {
-                scan( expression, typeCheckerUtils );
+            if ( isLinear( idVar ) ) {
+                LinearMark mark = currentScope().getVariables().get( idVar.getName() );
+                mark.ignoreNextUse(); // next use will be an assignment, which is not considered as a real use
+                checkLinearVariableValue( node, idVar.getName(), node.getExpression(), typeCheckerUtils );
             }
-        } else {
-            scan( variable, typeCheckerUtils );
-            scan( expression, typeCheckerUtils );
         }
-        return null;
+        ExpressionTree expression = node.getExpression();
+        if ( expression.getKind() == Tree.Kind.IDENTIFIER ) {
+            IdentifierTree idExpr = ( IdentifierTree ) variable;
+            if ( isLinear( idExpr ) ) {
+                LinearMark mark = currentScope().getVariables().get( idExpr.getName() );
+                mark.ignoreNextUse(); // next use will be aliasing, which is not considered as a real use
+            }
+        }
+        return super.visitAssignment( node, typeCheckerUtils );
+    }
+
+    private void checkLinearVariableValue( Tree node, Name nodeName,
+                                           ExpressionTree value, TypeCheckerUtils typeCheckerUtils ) {
+        if ( value.getKind() == Tree.Kind.IDENTIFIER ) {
+            IdentifierTree idInit = ( IdentifierTree ) value;
+            if ( !isLinear( idInit ) ) {
+                reportError( typeCheckerUtils, idInit, assignmentError( nodeName, idInit ) );
+            }
+        } else if ( value.getKind() == Tree.Kind.METHOD_INVOCATION ) {
+            MethodInvocationTree methodInitializer = ( MethodInvocationTree ) value;
+            if ( !hasLinearReturnType( typeCheckerUtils, methodInitializer ) ) {
+                reportError( typeCheckerUtils, node, assignmentError( nodeName, methodInitializer ) );
+            }
+        }
     }
 
     @Override
@@ -125,10 +124,13 @@ public final class LinearTypeChecker extends ScopeBasedTypeChecker<LinearMark> {
         Name nodeName = node.getName();
         Scope<LinearMark> scope = currentScope();
         LinearMark mark = scope.getVariables().get( nodeName );
+        System.out.println( "Visiting ID " + nodeName + ", is Linear? " + mark );
 
         if ( mark != null ) {
             if ( getScopes().isWithinLoop() ) {
                 // @Linear variable cannot be safely used in loops
+                // (mark at least twice to ensure initialization within loops is disallowed)
+                mark.markAsUsed();
                 mark.markAsUsed();
             }
             if ( mark.isUsedUp() ) {
@@ -208,7 +210,7 @@ public final class LinearTypeChecker extends ScopeBasedTypeChecker<LinearMark> {
         }
     }
 
-    @SuppressWarnings( "ConstantConditions" )
+    @SuppressWarnings( { "ConstantConditions", "BooleanMethodIsAlwaysInverted" } )
     private boolean hasLinearReturnType( TypeCheckerUtils typeCheckerUtils, MethodInvocationTree initializer ) {
         // do not report error if we simply can't find the element because
         // that probably means there's some other error in the source code already
@@ -217,14 +219,6 @@ public final class LinearTypeChecker extends ScopeBasedTypeChecker<LinearMark> {
         return typeCheckerUtils.getTreeElement( initializer )
                 .map( element -> isLinear( ( ( Symbol.MethodSymbol ) element ).getReturnType() ) )
                 .orElse( defaultReturnValue );
-    }
-
-    private boolean copyMarkToAlias( Name variable, IdentifierTree expression ) {
-        LinearMark mark = currentScope().getVariables().get( expression.getName() );
-        if ( mark != null ) {
-            currentScope().getVariables().put( variable, mark );
-        }
-        return mark != null;
     }
 
     private static void reportError( TypeCheckerUtils typeCheckerUtils, Tree node, String error ) {
@@ -246,12 +240,12 @@ public final class LinearTypeChecker extends ScopeBasedTypeChecker<LinearMark> {
         return "Re-using @Linear variable " + mark.name() + aliasInfo;
     }
 
-    private static String assignmentError( VariableTree node, IdentifierTree initializer ) {
-        return "Cannot assign non-linear variable " + initializer.getName() + " to linear variable " + node.getName();
+    private static String assignmentError( Name node, IdentifierTree initializer ) {
+        return "Cannot assign non-linear variable " + initializer.getName() + " to linear variable " + node;
     }
 
-    private static String assignmentError( VariableTree node, MethodInvocationTree initializer ) {
-        return "Cannot assign non-linear return type of " + initializer + " to linear variable " + node.getName();
+    private static String assignmentError( Name node, MethodInvocationTree initializer ) {
+        return "Cannot assign non-linear return type of " + initializer + " to linear variable " + node;
     }
 
     private static String methodCallError( MethodInvocationTree node, ExpressionTree arg, int argIndex ) {

@@ -8,18 +8,22 @@ import javax.lang.model.element.Name;
 final class LinearMark extends Mark<LinearMark> {
 
     private final VariableTree node;
-    private boolean usedUp = false;
+    private int useCount = 0;
 
     LinearMark( VariableTree node ) {
         this.node = node;
     }
 
     void markAsUsed() {
-        this.usedUp = true;
+        useCount++;
     }
 
     boolean isUsedUp() {
-        return usedUp;
+        return useCount > 0;
+    }
+
+    void ignoreNextUse() {
+        useCount--;
     }
 
     Name name() {
@@ -33,15 +37,27 @@ final class LinearMark extends Mark<LinearMark> {
     }
 
     @Override
-    protected LinearMark copy() {
+    public LinearMark copy() {
         LinearMark linearMark = new LinearMark( node );
-        linearMark.usedUp = usedUp;
+        linearMark.useCount = useCount;
         return linearMark;
     }
 
     @Override
-    public void merge( LinearMark mark ) {
-        this.usedUp |= mark.usedUp;
+    public LinearMark alias() {
+        return this;
     }
 
+    @Override
+    public void merge( LinearMark mark ) {
+        this.useCount += mark.useCount;
+    }
+
+    @Override
+    public String toString() {
+        return "LinearMark{" +
+                "node=" + node.getName() +
+                ", useCount=" + useCount +
+                '}';
+    }
 }

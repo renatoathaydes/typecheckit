@@ -9,7 +9,9 @@ public abstract class Mark<M> {
 
     protected abstract M enterNewScope();
 
-    protected abstract M copy();
+    public abstract M copy();
+
+    public abstract M alias();
 
     public abstract void merge( M mark );
 

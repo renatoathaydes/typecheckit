@@ -1,12 +1,15 @@
 package com.typecheckit;
 
+import com.sun.source.tree.AssignmentTree;
 import com.sun.source.tree.BreakTree;
 import com.sun.source.tree.CaseTree;
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.ConditionalExpressionTree;
 import com.sun.source.tree.DoWhileLoopTree;
 import com.sun.source.tree.EnhancedForLoopTree;
+import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.ForLoopTree;
+import com.sun.source.tree.IdentifierTree;
 import com.sun.source.tree.IfTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.StatementTree;
@@ -15,11 +18,13 @@ import com.sun.source.tree.SynchronizedTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.TreeVisitor;
 import com.sun.source.tree.TryTree;
+import com.sun.source.tree.VariableTree;
 import com.sun.source.tree.WhileLoopTree;
 import com.typecheckit.util.Mark;
 import com.typecheckit.util.ScopeStack;
 import com.typecheckit.util.TypeCheckerUtils;
 
+import javax.lang.model.element.Name;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -64,6 +69,33 @@ public abstract class ScopeBasedTypeChecker<M extends Mark<M>> extends TypeCheck
         super.visitMethod( node, typeCheckerUtils );
         scopes.exitScope();
         return null;
+    }
+
+    @Override
+    public Void visitVariable( VariableTree node, TypeCheckerUtils typeCheckerUtils ) {
+        ExpressionTree initializer = node.getInitializer();
+        if ( initializer != null ) {
+            if ( initializer.getKind() == Tree.Kind.IDENTIFIER ) {
+                IdentifierTree idInit = ( IdentifierTree ) initializer;
+                copyMarkToAlias( node.getName(), idInit );
+            }
+        }
+        return super.visitVariable( node, typeCheckerUtils );
+    }
+
+
+    @Override
+    public Void visitAssignment( AssignmentTree node, TypeCheckerUtils typeCheckerUtils ) {
+        ExpressionTree variable = node.getVariable();
+        ExpressionTree expression = node.getExpression();
+        if ( variable.getKind() == Tree.Kind.IDENTIFIER ) {
+            IdentifierTree idVar = ( IdentifierTree ) variable;
+            if ( expression.getKind() == Tree.Kind.IDENTIFIER ) {
+                IdentifierTree idExpr = ( IdentifierTree ) expression;
+                copyMarkToAlias( idVar.getName(), idExpr );
+            }
+        }
+        return super.visitAssignment( node, typeCheckerUtils );
     }
 
     @Override
@@ -201,6 +233,14 @@ public abstract class ScopeBasedTypeChecker<M extends Mark<M>> extends TypeCheck
                 mark.merge( tempMark );
             }
         } );
+    }
+
+
+    private void copyMarkToAlias( Name variable, IdentifierTree expression ) {
+        M mark = currentScope().getVariables().get( expression.getName() );
+        if ( mark != null ) {
+            currentScope().getVariables().put( variable, mark.alias() );
+        }
     }
 
     private class SwitchElseCase implements Tree {

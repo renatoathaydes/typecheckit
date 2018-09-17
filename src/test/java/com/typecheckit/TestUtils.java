@@ -2,6 +2,7 @@ package com.typecheckit;
 
 import com.athaydes.osgiaas.javac.internal.DefaultClassLoaderContext;
 import com.athaydes.osgiaas.javac.internal.compiler.OsgiaasJavaCompiler;
+import com.typecheckit.linear.LinearTypeChecker;
 import junit.framework.AssertionFailedError;
 
 import java.io.ByteArrayOutputStream;
@@ -25,9 +26,13 @@ public class TestUtils {
             new OsgiaasJavaCompiler(
                     DefaultClassLoaderContext.INSTANCE,
                     asList( "-processor",
-                            "com.typecheckit.TypeCheckitProcessor" ) );
+                            "com.typecheckit.TypeCheckitProcessor", "-Atypechecker=" + typeCheckerClass().getName() ) );
 
     private final Set<String> imports = new HashSet<>( 5 );
+
+    protected Class<? extends TypeChecker> typeCheckerClass() {
+        return LinearTypeChecker.class;
+    }
 
     protected void addImports( String... imports ) {
         this.imports.addAll( Arrays.asList( imports ) );

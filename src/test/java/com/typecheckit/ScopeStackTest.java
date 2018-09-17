@@ -28,8 +28,13 @@ public class ScopeStackTest {
         }
 
         @Override
-        protected TestMark copy() {
+        public TestMark copy() {
             return new TestMark( index, canAffectParentScope );
+        }
+
+        @Override
+        public TestMark alias() {
+            return this;
         }
 
         @Override
