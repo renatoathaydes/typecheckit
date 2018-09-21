@@ -5,12 +5,12 @@ import com.sun.tools.javac.comp.CompileStates;
 import com.sun.tools.javac.main.JavaCompiler;
 import com.sun.tools.javac.processing.JavacProcessingEnvironment;
 import com.sun.tools.javac.util.Context;
-import com.typecheckit.linear.LinearTypeChecker;
 
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.annotation.processing.RoundEnvironment;
 import javax.annotation.processing.SupportedAnnotationTypes;
+import javax.annotation.processing.SupportedOptions;
 import javax.annotation.processing.SupportedSourceVersion;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.TypeElement;
@@ -22,7 +22,10 @@ import java.util.Set;
 
 @SupportedSourceVersion( SourceVersion.RELEASE_8 )
 @SupportedAnnotationTypes( "*" )
+@SupportedOptions( TypeCheckitProcessor.TYPECHECKER_OPTION )
 public class TypeCheckitProcessor extends AbstractProcessor {
+
+    public static final String TYPECHECKER_OPTION = "typechecker";
 
     @Override
     public synchronized void init( ProcessingEnvironment env ) {
@@ -30,9 +33,6 @@ public class TypeCheckitProcessor extends AbstractProcessor {
 
         Iterator<TypeChecker> loader = ServiceLoader.load( TypeChecker.class ).iterator();
         List<TypeChecker> typeCheckers = new ArrayList<>();
-
-        // TODO make this a service
-        typeCheckers.add( new LinearTypeChecker() );
 
         if ( loader.hasNext() ) {
             while ( loader.hasNext() ) {
@@ -44,9 +44,20 @@ public class TypeCheckitProcessor extends AbstractProcessor {
             //return;
         }
 
-        final TypeCheckitTaskListener listener = new TypeCheckitTaskListener( ( JavacProcessingEnvironment ) env, typeCheckers );
-
         System.out.println( "Processor options: " + env.getOptions() );
+
+        if ( env.getOptions().containsKey( TYPECHECKER_OPTION ) ) {
+            try {
+                Object typechecker = Class.forName( env.getOptions().get( TYPECHECKER_OPTION ) ).newInstance();
+                typeCheckers.add( ( TypeChecker ) typechecker );
+            } catch ( Exception e ) {
+                e.printStackTrace();
+            }
+        }
+
+        System.out.println( "Using typecheckers " + typeCheckers );
+
+        final TypeCheckitTaskListener listener = new TypeCheckitTaskListener( ( JavacProcessingEnvironment ) env, typeCheckers );
 
         JavacTask.instance( env ).addTaskListener( listener );
 

@@ -9,7 +9,6 @@ import com.sun.source.tree.IdentifierTree;
 import com.sun.source.tree.ImportTree;
 import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.MethodTree;
-import com.sun.source.tree.ModifiersTree;
 import com.sun.source.tree.ParenthesizedTree;
 import com.sun.source.tree.ReturnTree;
 import com.sun.source.tree.Tree;
@@ -21,54 +20,35 @@ import com.sun.tools.javac.util.JCDiagnostic.DiagnosticPosition;
 import com.sun.tools.javac.util.List;
 import com.typecheckit.ScopeBasedTypeChecker;
 import com.typecheckit.annotation.Linear;
+import com.typecheckit.util.AnnotationDetector;
 import com.typecheckit.util.ScopeStack.Scope;
 import com.typecheckit.util.TypeCheckerUtils;
 
 import javax.lang.model.element.Name;
-import java.util.HashSet;
-import java.util.Set;
 
 import static javax.tools.Diagnostic.Kind.ERROR;
 
 public final class LinearTypeChecker extends ScopeBasedTypeChecker<LinearMark> {
 
-    private static final String LINEAR_CLASS_NAME = Linear.class.getName();
-    private static final String LINEAR_PKG_STAR = Linear.class.getPackage().getName() + ".*";
-
-    private final Set<String> linearAnnotationNames = new HashSet<>( 2 );
-
-    public LinearTypeChecker() {
-        linearAnnotationNames.add( LINEAR_CLASS_NAME );
-    }
+    private final AnnotationDetector annotationDetector = new AnnotationDetector( Linear.class );
 
     private boolean isLinear( IdentifierTree identifierTree ) {
         return currentScope().getVariables().containsKey( identifierTree.getName() );
     }
 
-    private boolean isLinear( ModifiersTree modifiers, TypeCheckerUtils typeCheckerUtils ) {
-        return typeCheckerUtils.annotationNames( modifiers ).stream()
-                .anyMatch( linearAnnotationNames::contains );
-    }
-
-    private boolean isLinear( Type type ) {
-        return type.getKind().isPrimitive() || type.getAnnotationMirrors().stream()
-                .anyMatch( it -> it.getAnnotationType().toString().equals( LINEAR_CLASS_NAME ) );
+    private boolean isLinearAssignable( Type type ) {
+        return type.isPrimitive() || annotationDetector.isAnnotated( type );
     }
 
     @Override
     public Void visitImport( ImportTree node, TypeCheckerUtils typeCheckerUtils ) {
-        String importId = node.getQualifiedIdentifier().toString();
-        boolean linearTypeImported = importId.equals( LINEAR_CLASS_NAME ) ||
-                importId.equals( LINEAR_PKG_STAR );
-        if ( linearTypeImported ) {
-            linearAnnotationNames.add( "Linear" );
-        }
+        annotationDetector.addImport( node );
         return super.visitImport( node, typeCheckerUtils );
     }
 
     @Override
     public Void visitVariable( VariableTree node, TypeCheckerUtils typeCheckerUtils ) {
-        boolean isLinearVariable = isLinear( node.getModifiers(), typeCheckerUtils );
+        boolean isLinearVariable = annotationDetector.isAnnotated( node.getModifiers(), typeCheckerUtils );
 
         if ( isLinearVariable ) {
             ExpressionTree initializer = node.getInitializer();
@@ -149,8 +129,9 @@ public final class LinearTypeChecker extends ScopeBasedTypeChecker<LinearMark> {
         for ( int i = 0, max = Math.min( parameterTypes.size(), arguments.size() ); i < max; i++ ) {
             ExpressionTree arg = arguments.get( i );
             if ( arg.getKind() == Tree.Kind.IDENTIFIER && isLinear( ( IdentifierTree ) arg ) ) {
-                // the argument is a @Linear variable, check if the method accepts @Linear variables
-                if ( !isLinear( parameterTypes.get( i ) ) ) {
+                // the argument is a @Linear variable, check if the method argument accepts @Linear variables
+                Type parameterType = parameterTypes.get( i );
+                if ( !isLinearAssignable( parameterType ) ) {
                     reportError( typeCheckerUtils, node, methodCallError( node, arg, i ) );
                 }
             }
@@ -163,7 +144,7 @@ public final class LinearTypeChecker extends ScopeBasedTypeChecker<LinearMark> {
         Scope<LinearMark> scope = currentScope();
 
         scope.getMethodTree().ifPresent( methodTree -> {
-            if ( isLinear( methodTree.getModifiers(), typeCheckerUtils ) ) {
+            if ( annotationDetector.isAnnotated( methodTree.getModifiers(), typeCheckerUtils ) ) {
                 ExpressionTree expression = node.getExpression();
                 verifyExpressionIsLinear( methodTree, typeCheckerUtils, expression );
             }
@@ -217,7 +198,7 @@ public final class LinearTypeChecker extends ScopeBasedTypeChecker<LinearMark> {
         boolean defaultReturnValue = true;
 
         return typeCheckerUtils.getTreeElement( initializer )
-                .map( element -> isLinear( ( ( Symbol.MethodSymbol ) element ).getReturnType() ) )
+                .map( element -> isLinearAssignable( ( ( Symbol.MethodSymbol ) element ).getReturnType() ) )
                 .orElse( defaultReturnValue );
     }
 
